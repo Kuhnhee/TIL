@@ -1,6 +1,6 @@
 # SSAFY python basic (190715)
 
-## Python 기초
+## Python 기초 (저장)
 
 ### 디렉토리 준비
 
