@@ -282,7 +282,51 @@ def even(n):
 list(filter(even,numbers))
 ```
 
+---
 
+### Problem set
+
+#### 최대공약수, 최소공배수 구하기
+
+```python
+#유클리드 호제법 (최대공약수)
+def gcd(a, b):
+    mod = a%b
+    while mod > 0:
+        a = b
+        b = mod
+        mod = a%b
+    return b
+```
+
+```python
+#최소공배수
+def lcm(a, b):
+    return a*b//gcd(a,b)
+```
+
+#### 덧셈 기호 없이 더하기
+
+```python
+def Add(x, y): 
+  
+    # Iterate till there is no carry  
+    while (y != 0): 
+      
+        # carry now contains common 
+        # set bits of x and y 
+        carry = x & y 
+  
+        # Sum of bits of x and y where at 
+        # least one of the bits is not set 
+        x = x ^ y 
+  
+        # Carry is shifted by one so that    
+        # adding it to x gives the required sum 
+        y = carry << 1
+      
+    return x 
+```
 
 
 
