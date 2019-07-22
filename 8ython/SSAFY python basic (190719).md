@@ -1,7 +1,5 @@
 # SSAFY python basic (190719)
 
-## 으앙
-
 ### gitlab
 
 우측상단 `+` -> new project (repository 개념)
