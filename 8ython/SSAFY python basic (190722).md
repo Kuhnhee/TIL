@@ -140,7 +140,7 @@ math.pow(5,2)	#25.0
 num = input()
 
 try:
-    int(num)
+    float(num)
     if set(num).issubset({'0','1'}):
         print("2진수다")
     else:
@@ -149,9 +149,93 @@ except:
     print("숫자가 아니다.")
 ```
 
+
+
+사용자가 입력한 값으로 100을 나눈 후 출력하는 코드
+
+```python
+try:
+    num = input()
+    print(100/int(num))
+except ZeroDivisionError:
+    print('0 노노')
+except ValueError:
+    print('숫자 넣어')
+except:
+    print('뭔지 모르겠지만 일단 에러 남')
+```
+
+- 여기서 중요한 내용은 **에러가 순차적으로 수행됨**으로, 가장 작은 범주부터 시작해야합니다.
+
+
+
+에러 메세지를 그대로 출력시키는 것도 가능하다.
+
+```python
+try:
+    num_list = [1,2,3]
+    print(num_list[5])
+except IndexError as err:
+    print(f'{err} 에러가 났어요')
+```
+
+
+
+### try-except-else-finally
+
+- else : 예외가 발생하지 않은 경우 거치게 되는 블록
+- finally : 예외 발생 여부에 상관 없이 거치게 되는 블록
+
+
+
+### 예외 발생시키기(raise)
+
+```python
+# 에러를 우리가 통제해서 사용한다.
+raise ValueError('에러')
+'''
+ValueError                         Traceback (most recent call last)
+<ipython-input-22-fb527def7d31> in <module>
+      1 # 에러를 우리가 통제해서 사용한다.
+----> 2 raise ValueError('에러')
+
+ValueError: 에러
+'''
+```
+
+
+
+### 예외 발생시키기 (assert)
+
+```python
+assert Boolean expression, error message
+```
+
+위의 검증식이 거짓일 경우 AssertionError를 발생한다.
+
+```python
+def my_div(num1, num2):
+    assert type(num1) == int and type(num2) == int, '정수가 아닙니다.'
+    try:
+        result = num1/num2
+    except ZeroDivisionError as ze:
+        print(f'{ze} 에러가 발생했습니다.')
+    else:
+        return result
+    
+my_div('1', '2')
+my_div(10, 0)
+```
+
+
+
 --------------------------------------------------
 
 
+
+### TDD 방법론 (Test Driven)
+
+- 실패할 수 있는 케이스들을 우선하여 극복하는 방식으로 프로그램 개발
 
 
 
