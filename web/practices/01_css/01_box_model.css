@@ -1,0 +1,45 @@
+.hidden{
+  visibility:hidden;
+}
+
+
+.none {
+  display:none;
+}
+
+.inline-block {
+  display:inline-block;
+  margin:10px;
+  height:100px;
+  width:100px;
+}
+
+div {
+  margin-left:auto;
+  margin-right:auto;
+  height: 100px;
+  width: 100px;
+  /* display: block; */
+  background-color: brown;
+  text-align:center;
+  line-height: 100px;
+  letter-spacing: 5px;
+}
+
+a {
+  margin-left: 10px;
+  margin-right: 10px;
+  margin-top: 100px;
+}
+
+.odd{
+  background-color: aqua;
+}
+
+.even{
+  background-color: azure
+}
+
+#zero{
+  background-color: blueviolet
+}
