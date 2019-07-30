@@ -45,7 +45,7 @@ h1{
 
 html 문서는 모든 것이 Box다.
 
-![box](/img/box.jpg)
+![box](img/box.jpg)
 
 - Content: 실제 내용이 위치
 - Border: 테두리 영역
@@ -109,8 +109,9 @@ html 문서는 모든 것이 Box다.
 - 항상 새로운 라인에서 시작한다.
 - 화면 크기 전체의 가로폭을 차지한다. (width:100%) 소위 길막.
 - block 레벨 요소 내에 inline 레벨 요소를 포함할 수 있다.
-  - inline 레벨 요소가 더 적으므로, 무엇무엇이 속해있는지 암기해 놓자.
-
+  
+- inline 레벨 요소가 더 적으므로, 무엇무엇이 속해있는지 암기해 놓자.
+  
 - 너비가 정해지면 나머지를 margin으로 채운다. (디폴트: margin-right:auto)
 
   아래와 같이 하면 컨텐츠를 오른쪽으로 밀어버린다.
@@ -303,7 +304,7 @@ html 문서는 모든 것이 Box다.
 
 - 보이는 위치와는 별개로, 원래 있던 위치를 동시에 차지하고 있는 것으로 프로그램은 인식한다.
 
-- ![relative1](/img/relative1.jpg)
+- ![relative1](img/relative1.jpg)
 
 - ```html
   <div class="box1">
@@ -339,7 +340,7 @@ html 문서는 모든 것이 Box다.
   }
   ```
 
-- ![absolute1](/img/absolute1.jpg)
+- ![absolute1](img/absolute1.jpg)
 
 ##### html z index (배치 순서 결정)
 
@@ -367,7 +368,7 @@ html 문서는 모든 것이 Box다.
   </div>
   ```
 
-![fixed1](/img/fixed1.jpg)
+![fixed1](img/fixed1.jpg)
 
 
 
