@@ -385,5 +385,35 @@ CDN(Contents Delivery Network)을 활용하여 static file(css)을 가져올 수
 
 
 
+---
+
+
+
+### 가상환경 만들기
+
+```shell
+mkdir ~/python-virtualenv
+python -m venv ~/python-virtualenv/3.7.3
+source ~/python-virtualenv/3.7.3/scripts/activate #3.7.3버전 가상환경 실행
+deactivate	#가상환경 종료
+```
+
+alias로 축약
+
+```
+# .bashrc
+alias jn='jupyter notebook'
+alias venv='source ~/python-virtualenv/3.7.3/scripts/activate'
+
+source ~/.bashrc #리로드
+```
+
+venv라고 치기만 해도 3.7.3버전 가상환경 실행 가능
+
+```
+venv
+deactivate
+```
+
 
 
