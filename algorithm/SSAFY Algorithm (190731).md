@@ -35,9 +35,9 @@
 
 - 최고차 항 만을 고려한다.
 
-![bigograph](img\bigograph.jpg)
+![bigograph](img/bigograph.jpg)
 
-![bigograph2](img\bigograph2.jpg)
+![bigograph2](img/bigograph2.jpg)
 
 
 
@@ -57,7 +57,7 @@
 
   오늘 학습 목표는 버블, 카운트 정렬
 
-![sorting](img\sorting.jpg)
+![sorting](img/sorting.jpg)
 
 
 
