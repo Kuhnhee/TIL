@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="X-UA-Compatible" content="ie=edge">
+  <title>Document</title>
+</head>
+<body>
+
+<h1>FORM</h1>
+<p>주문서를 작성하여 주십시오.</p>
+<!-- <p>
+  이름: <input type="text" placeholder="이름을 입력해주세요"><br>
+  날짜: <input type="text" placeholder="2019. 01. 03">
+</p> -->
+<form action="">
+  <span>이름: <input type="name" placeholder="이름을 입력해주세요"></span><br>
+  <span>날짜: <input type="date" value="2019-01-03", name="date"></span>
+</form>
+
+
+<h2>1.샌드위치 선택</h2>
+<!-- <input type="checkbox" name="menu1" value="Eggmayo">에그 마요<br>
+<input type="checkbox" name="menu2" value="BMT">이탈리안 비엠티<br>
+<input type="checkbox" name="menu3" value="TBA">터키 베이컨 아보카도<br> -->
+<input type="radio" value="eggmayo">에그 마요<br>
+<input type="radio" value="BMT">이탈리안 비엠티<br>
+<input type="radio" value="TBA">터키 베이컨 아보카도<br>
+
+<hr>
+
+<h2>2.사이즈 선택</h2>
+<input type="number" min="15" max="30", value="20">
+
+<hr>
+
+<h2>3.빵</h2>
+<!-- 어떠한 옵션을 선택했을 때, value에 있는 값이 name에 저장됨 -->
+<select name="" id="bread">
+  <option value="honey">허니오트</option>
+  <option value="flat">플랫브래드</option>
+  <option value="italian">하티 이탈리안</option>
+</select>
+
+<hr>
+
+<h2>4.야채/소스</h2>
+<input type="checkbox" name="veg1" value="tomato">토마토<br>
+<input type="checkbox" name="veg2" value="cucumber">오이<br>
+<input type="checkbox" name="veg3" value="peno">할라피뇨<br>
+<input type="checkbox" name="sauce1" value="chillie">핫 칠리<br>
+<input type="checkbox" name="sauce2" value="bbq">바베큐<br>
+
+
+<p><button>submit</button></p>
+
+
+</body>
+</html>

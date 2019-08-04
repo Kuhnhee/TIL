@@ -1,0 +1,48 @@
+div {
+  height: 100px;
+  width: 100px;
+  line-height:100px;
+  text-align:center;
+  color:#f0f0f0;
+}
+
+.relative{
+  position:relative;
+  top:100px;
+  left:100px;
+  /* z-index:1; */
+}
+
+.absolute{
+  position: absolute;
+  left:108px;
+  top:158px;
+}
+
+.fixed{
+  position:fixed;
+  /* left:200px;
+  top:100px; */
+  bottom:0px;
+  right:0px;
+}
+
+.box1{
+  background-color: red;
+}
+
+.box2{
+  background-color: orange
+}
+
+.box3{
+  background-color: green
+}
+
+.box4{
+  background-color: blue;
+}
+
+.box5{
+  background-color: aqua;
+}
