@@ -28,7 +28,7 @@ ol > li:nth-child(6){
 }
 ```
 
-![css_selector1](img/css_selector1.jpg)
+![css_selector1](./img/css_selector1.jpg)
 
 - '후손'과 '자식'의 구분
 
@@ -177,11 +177,11 @@ html의 기본 스타일 설정을 덮어씌우는 과정. bootstrap-reboot.css�
 
 - mt 값의 pixel 단위는 불규칙하다.
 
-  ![mtsize](img\mtsize.jpg)
+  ![mtsize](./img/mtsize.jpg)
 
 - 음수 값 또한 사용 가능하다.
 
-![mtsizenega](img\mtsizenega.jpg)
+![mtsizenega](./img/mtsizenega.jpg)
 
 - "mx-auto"를 사용하여 중앙정렬 또한 가능하다.(좌우 marign을 동일하게)
 - "text-center"를 사용하여 text의 중앙정렬이 가능하다.
@@ -242,7 +242,7 @@ html의 기본 스타일 설정을 덮어씌우는 과정. bootstrap-reboot.css�
 - 한 row 안에, 12개까지 column을 배치할 수 있다.
   - 12개가 아니더라도, 균등하게 공간을 배분한다.
 
-![grid1](img\grid1.jpg)
+![grid1](./img/grid1.jpg)
 
 ```css
 <div class="container-fluid bg-secondary vh-20">
@@ -260,7 +260,7 @@ html의 기본 스타일 설정을 덮어씌우는 과정. bootstrap-reboot.css�
 
 - 균등하지 않게 공간을 배분할 수 도 있다.
 
-![grid2](img\grid2.jpg)
+![grid2](./img/grid2.jpg)
 
 ```css
   <div class="container-fluid bg-secondary vh-20">
@@ -282,7 +282,7 @@ html의 기본 스타일 설정을 덮어씌우는 과정. bootstrap-reboot.css�
 
 - ".col-sm-4" : 4개의 column을 차지하고 있다가, small device에 해당하는 화면 크기에 도달하는 순간 grid를 풀고, 한 row에 한 column만 사용하도록 컨텐츠를 세로방향으로 쌓아준다.(반응형으로!)
 
-   ![grid3](img\grid3.jpg)
+   ![grid3](./img/grid3.jpg)
 
   ```css
     <div class="container-fluid bg-secondary vh-20">
