@@ -103,16 +103,12 @@ ol > li:nth-child(6){
   }
   /*
   img[alt|="TYPE"]{
-  
   }
   img[alt$="TYPE"]{
-    
   }
   img[alt~="TYPE"]{
-    
   }
   img[alt^="TYPE"]{
-    
   }
   */
   ```
