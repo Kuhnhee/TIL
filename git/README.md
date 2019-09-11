@@ -1,4 +1,4 @@
-# 190909 Git
+# Git
 
 `git log --oneline`
 
@@ -39,6 +39,8 @@
 - git 시각화 툴 
 
   https://git-school.github.io/visualizing-git/
+  
+  https://learngitbranching.js.org/
 
 
 
@@ -87,3 +89,70 @@
 ![conflict2](./img/conflict2.jpg)
 
 - conflict 해결 후 `add`, `commit` 하면 merge 완료
+
+
+
+---
+
+- merge [브랜치이름] : [브랜치이름]을 병합한다.
+- rebase [브랜치이름] : ~를 [브랜치이름]에 갖다붙인다.
+
+
+
+## Pull Request scenario (Fork & Pull request)
+
+1. A가 repository 생성, 프로젝트 push
+2. B가 A의 repository fork
+3. fork한 repository를 B의 local에 clone
+4. B가 clone한 프로젝트를 수정하여 fork했던 repository에 push
+5. B : github > [fork한 repository] > [New pull request]
+6. A : pull request 승인
+
+
+
+- 수정된 프로젝트를 B가 받아가는 방법
+
+  ```bash
+  git remote -v
+  git remote add upstream https://github.com/sspy21/nhaeng.git
+  git remote -v #upstream 추가된 것 확인
+  git fetch upstream
+  git merge upstream/master
+  
+  git add .
+  git commit -m "fix merge conflict"
+  ```
+
+
+
+## Branching & Pull request
+
+- 현실 협업 모델
+- contributor들이 각각 clone한 뒤, branch를 만들어 프로젝트를 수정.
+- 수정된 프로젝트를 push ` git push origin kuhnhee`
+- 내가 수정한 branch에 대한 pull request 요청
+- reviewer들이 pull request를 검증
+
+
+
+- merge된 master를 나의 local로 받아오기 (**반드시 master에서 해야한다.**)
+
+  ```bash
+  git checkout master
+  git pull
+  git branch -d kuhnhee
+  ```
+
+- 다시 내 이름으로 branch를 깐 뒤, 프로젝트 작업
+
+  ```bash
+  git checkout -b kuhnhee
+  ```
+
+  
+
+
+---
+
+
+
