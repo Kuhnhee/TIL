@@ -4,6 +4,6 @@
 
 
 
-- 8ython(./8ython/README.md)
+- [8ython](./8ython/)
 - 
 
