@@ -1,4 +1,4 @@
-# SSAFY Web (190729)
+# Web (190729)
 
 ## Intro to Web service
 
