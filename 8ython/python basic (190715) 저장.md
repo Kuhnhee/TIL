@@ -1,4 +1,4 @@
-# SSAFY python basic (190715)
+# python basic (190715)
 
 ## Python 기초 (저장)
 

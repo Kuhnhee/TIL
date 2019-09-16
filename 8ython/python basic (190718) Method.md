@@ -1,4 +1,4 @@
-# SSAFY python basic (190718)
+# python basic (190718)
 
 ## Python 기초 (method)
 

@@ -1,4 +1,4 @@
-# SSAFY python basic (190723,24)
+# python basic (190723,24)
 
 ## OOP basic
 

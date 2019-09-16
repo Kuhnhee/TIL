@@ -1,4 +1,4 @@
-# SSAFY python basic (190719)
+# python basic (190719)
 
 ### gitlab
 

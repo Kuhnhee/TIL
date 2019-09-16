@@ -1,4 +1,4 @@
-# SSAFY python basic (190716)
+# python basic (190716)
 
 ## Python 기초 (control flow, function)
 

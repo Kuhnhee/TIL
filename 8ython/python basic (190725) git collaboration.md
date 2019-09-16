@@ -1,4 +1,4 @@
-# SSAFY python basic (190725)
+# python basic (190725)
 
 ## git, 협업
 

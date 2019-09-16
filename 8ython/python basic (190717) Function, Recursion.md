@@ -1,4 +1,4 @@
-# SSAFY python basic (190717)
+# python basic (190717)
 
 ## Python 기초 (function, 재귀)
 

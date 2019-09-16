@@ -1,4 +1,4 @@
-# SSAFY python basic (190722)
+# python basic (190722)
 
 ## 모듈
 
