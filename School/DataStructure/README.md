@@ -137,7 +137,7 @@ Tree는 Stack, Queue와 같은 선형 구조가 아닌 비선형 자료구조로
 
 - e = i + 1
 - n = 2e - 1
-- h $$\le$$ i  
+- h $\le$ i  
 
 
 
