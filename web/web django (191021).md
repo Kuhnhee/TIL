@@ -99,7 +99,7 @@ def signup(request):
 
 
 
-여기서 의문) 왜 model을 먼저 만들지 않앗지?*
+*여기서 의문) 왜 model을 먼저 만들지 않앗지?*
 
 *대답) Django가 알아서 제공해 줄 것*.
 
@@ -191,6 +191,7 @@ def signup(request):
 
 - Session: 접속된 유저가 누구인지에 대한 일시적인 정보(서버에 저장된)
 - 사용자가 로그인 했음을 기록하는 CRUD
+- 로그인 = Session Create / 로그아웃 = Session Delete / 로그인 연장 = Session Update
 
 
 
@@ -375,5 +376,221 @@ def logout(request):
 
 
 
+**로그인이 된 유저는 로그인창을 띄우지 않고, articles/로 리다이렉트 시키자**
+
+(로그인 버튼이 더이상 보이지는 않지만, url을 통해 주소 창으로 접근이 여전히 가능한 상황에서 accounts/login/ 혹은 accounts/signup/ 으로 접속 시 articles/로 리다이렉트 시키자.)
+
+```shell
+# embed()에서 request.user로 확인할 수 있는 것들..
+dir(request.user)
+request.user.username
+request.user.is_authenticated
+request.user.is_anonymous
+request.user.is_superuser
+```
+
+`views.py`의 `login()`함수에 아래와 같은 코드를 추가한다.
+
+```python
+def signup(request):
+    #만약 로그인 되어있으면, articles/로 리다이렉트
+    if request.user.is_authenticated:
+        return redirect('articles:index')
+   	...
+
+def login(request):
+    #만약 로그인 되어있으면, articles/로 리다이렉트
+    if request.user.is_authenticated:
+        return redirect('articles:index')
+    ...
+```
+
+
+
+**글을 쓰기 위해서는 로그인을 해야 하도록 하자**
+
+우선, `새글쓰기` 버튼이 로그인 되어있는 상태에서만 보이도록 하자.
+
+```html
+<!-- [articles] > [templates] > [articles] > index.html -->
+...
+{% if user.is_authenticated %}
+  <a href="{% url 'articles:create' %}">새글쓰기</a>
+{% endif %}
+...
+```
+
+여전히 URL로 articles/create/에 접속할 수 있으므로, 이를 막아주자. (접근시 index 페이지로 리다이렉트)
+
+```python
+# [articles] > views.py
+def create(request):
+    if not request.user.is_authenticated:
+        return redirect("articles:index")
+   	...
+```
+
+*매번 이렇게 view 함수마다 추가해줘야 하나...? 좀 더 깔끔하게 해보자*
+
+- `index`로 보내기 보다는, `login` 페이지로 보내자.
+
+- Decorator를 사용하자. [링크](https://docs.djangoproject.com/ko/2.2/topics/auth/default/#django.contrib.auth.decorators.login_required). 위에서 작성한 불필요한 코드들 생략 가능
+
+  ```python
+  # [articles] > views.py
+  from django.contrib.auth.decorators import login_required
+  
+  @login_required
+  def create(request):
+  #    if not request.user.is_authenticated:
+  #       return redirect("accounts:login")
+  ```
+
+  - Decorator를 사용할 경우, `next`에 의해 자동적으로 `create` 페이지로 리다이렉트된다. (단, `next` 핸들링을 해줘야 한다.)
+
+  - `next` 파라미터 핸들링은 다음과 같이 할 수 있다.
+
+    ```python
+    # [accounts] > views.py
+    def login(request):
+        #만약 로그인 되어있으면, articles/로 리다이렉트
+        if request.user.is_authenticated:
+            return redirect('articles:index')
+    
+        if request.method == 'POST':
+            form = AuthenticationForm(request, request.POST)
+            if form.is_valid():
+                auth_login(request, form.get_user()) 
+                # 'next' 파라미터가 있을 경우.... 혹은 없을 경우... 핸들링
+                return redirect(request.GET.get('next') or 'articles:index')
+    ```
+
+    
+
+- `@login_required`의 default 리다이렉트 주소가 /accounts/login/ 이다. 이걸 바꿔주고 싶을 경우, `@login_required(login_url='/accounts/log_in')`과 같이 하면 된다. 귀찮으니까 되도록이면 default값을 사용하자.
+
+- 혹시 login url을 커스터마이징에서 썼을 경우, `settings.py`에 아래와 같이 추가해주면 default 경로 변경 가능
+
+  ```python
+  #settings.py
+  LOGIN_URL = '/accounts/log_in/'
+  ```
+
+  
+
+**게시글 수정, 삭제의 경우에도 로그인 해야만 사용 가능하도록 해보자**
+
+```html
+<!--index.html-->
+{% if user.is_authenticated %}
+<a href="{% url 'articles:update' article.pk %}"> 수정하기 </a>
+<!-- <a href="{% url 'articles:delete' article.pk %}"> 삭제하기 </a> -->
+<form action="{% url 'articles:delete' article.pk %}" method="POST">
+    {% csrf_token %}
+    <input type="submit" value="삭제">
+</form>
+{% endif %}
+```
+
+```html
+<!--detail.html-->
+{% if user.is_authenticated %}
+<a href="{% url 'articles:update' article.pk %}"> 수정하기 </a>
+<form action="{% url 'articles:delete' article.pk %}" method="POST">
+    {% csrf_token %}
+    <input type="submit" value="삭제">
+</form>
+{% endif %}
+```
+
+```python
+@login_required
+def update(request, article_pk):
+```
+
+```python
+@login_required
+@require_POST
+def delete(request, article_pk):
+```
+
+```python
+@login_required
+@require_POST
+def commentCreate(request, article_pk):
+```
+
+```python
+@login_required
+@require_POST
+def commentDelete(request, article_pk, comment_id):
+```
+
+
+
+검증되지 않은 유저가 삭제를 하려고 할 경우, **401** 에러를 내보내자. (함수 자체를 유저 검증으로 단단히 잠궈놓는 방법.)
+
+```python
+# [articles] > views.py
+from django.http import Http404, HttpResponse
+
+@login_required
+@require_POST
+def delete(request, article_pk):
+    if request.user.is_authenticated:
+        
+        article = get_object_or_404(Article, pk=article_pk)
+        if request.method == 'POST':
+            article.delete()
+            return redirect('articles:index')
+        else:
+            return redirect(article)
+
+    return HttpResponse('검증되지 않은 유저정보', status=401)
+```
+
+ 
+
+### 회원탈퇴
+
+```html
+<!--base.html-->
+<form style="display: inline;" action="{% url 'accounts:delete' %}" method="POST">
+    {% csrf_token %}
+    <input type="submit" value="회원탈퇴" class="btn btn-danger">
+</form>
+```
+
+```python
+# [accounts] > urls.py
+urlpatterns = [
+	...
+    path('delete/', views.delete, name='delete'),
+]
+```
+
+```python
+# [accounts] > views.py
+@require_POST
+def delete(request):
+    # DB에서 user를 삭제한다.
+    request.user.delete()
+    return redirect('articles:index')
+```
+
+
+
+### 회원가입 & 로그인을 동시에 하도록 하자
+
+
+
+
+
+
+
 **향후 과제) 특정 글이 특정 유저에게 속하도록 만들자**
+
+
+
+
 
