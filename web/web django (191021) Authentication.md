@@ -1,4 +1,4 @@
-# 회원가입 / 로그인 / 권한관리(추후)
+# 회원가입 / 로그인 / 권한관리(추후) / M:N
 
 이번 주의 키워드: 모듈화(재사용성)
 
@@ -1124,18 +1124,444 @@ def like(request, article_pk):
 
 **좋아요 취소 기능 추가**
 
+현재 request를 보내는 user가 `article.like_users` 안에 있는 경우 `좋아요 취소` 버튼을 보여준다.
+
 ```html
 {% if request.user in article.like_users.all %}
-	<a href="{% url 'articles:like_cancel' article.pk %}">좋아요 취소</a>
+	<a href="{% url 'articles:like' article.pk %}">좋아요 취소</a>
 {% else %}
 	<a href="{% url 'articles:like' article.pk %}">좋아요</a>
 {% endif %}
 ```
 
 ```python
-def like_cancel(request, article_pk):
+# [articles] > views.py
+def like(request, article_pk):
     article = Article.objects.get(pk=article_pk)
-    article.like_users.remove(request.user)
+    # 만약 좋아요 리스트에 현재 접속중인 유저가 있다면,
+    # -> 해당 유저는 좋아요 취소를 했다.
+    if request.user in article.like_users.all():
+        article.like_users.remove(request.user)
+    #아니면,
+    # -> 해당 유저는 좋아요를 했다.
+    else:
+        article.like_users.add(request.user)
     return redirect(article)
 ```
 
+Django ORM에서 쿼리셋 내부의 특정 요소 존재여부는 아래와 같이 확인할 경우 매우 비효율적 (매번 이터레이터를 돌 때마다 쿼리를 재생성 하게된다.)
+
+```python
+for e in Entry.objects.all():
+    print(e.headline)
+```
+
+`in` 말고, `exists()`와 `filter()`(조건에 맞는 결과물을 여러개 반환, `get()`는 특정 `pk`값에 해당하는 것만 찾아줌)를 사용하자.  `get()`은 찾는 결과물이 없을때 `Error` 반환, `filter()`는 찾는 결과물이 없을 때 `empty QuerySet`을 반환한다.
+
+```python
+# [articles] > views.py를 filter()와 exists()를 사용해 재작성해보자.
+def like(request, article_pk):
+    article = Article.objects.get(pk=article_pk)
+    user = request.user
+    if article.like_users.filter(pk=user.pk).exists():
+        article.like_users.remove(user)
+    else:
+        article.like_users.add(user)
+    return redirect(article)
+```
+
+
+
+**캐싱**
+
+좋아요 목록을 출력해주는 `detail.html`의 DTL문도 아래와 같이 수정할 수 있다. `with` 사용해서 쿼리셋을 가져온 뒤, 이터레이트 한다. [공식문서](https://docs.djangoproject.com/en/2.2/ref/templates/builtins/#with)
+
+```html
+<ul>
+    {% with likers=article.like_users.all %}
+        {% for u in likers %}
+            <li>{{ u }}</li>
+        {% endfor %}
+    {% endwith %}
+</ul>
+```
+
+
+
+## 프로필 만들기
+
+url을 통해 `username`값을 전달하도록 한다.
+
+```python
+#[recap] > urls.py
+from accounts import views as accounts_views
+
+urlpatterns = [
+	...
+    path('<username>/', accounts_views.profile, name='profile'),
+]
+```
+
+url상에서 던져준 username을 받아 사용하는 `view` 함수 `profile()`를 만든다.
+
+```python
+#[accounts] > views.py
+from django.shortcuts import render, redirect, get_object_or_404
+from django.contrib.auth import get_user_model # 유저 가져오기 위한 함수
+
+def profile(request, username):
+    # DB에서 유저를 뒤져본다.
+    person = get_object_or_404(get_user_model(), username=username)
+    context = {
+        'person': person,
+    }
+    return render(request, 'accounts/profile.html', context)
+```
+
+프로필 페이지 `profile.html`을 생성한다.
+
+```html
+<h2>{{ person }}가 쓴 글 목록</h2>
+{% with articles=person.article_set.all %}
+  {% for article in articles %}
+    <p>
+      제목: {{ article.title }} | 
+      좋아요: {{ article.like_users.count }} | 
+      댓글: {{ article.comment_set.count }}
+    </p>
+  {% endfor %}
+{% endwith %}
+```
+
+
+
+## Follow 기능 추가하기 (M:N)
+
+"User follows User": 재귀적. 누가 누구를 follow하는지만 추적하면 된다.
+
+follow라는 테이블은 `from_user_id`, `to_user_id` 두 개의 컬럼만 관리하면 된다.
+
+Follow기능을 만들기 위해서(`followers` field가 필요)는 `User` customization을 할 수 밖에 없다.
+
+`related_name`은 역참조 값을 설정하는 것. 반대쪽에 있는 애들에게 새로 만들어진 테이블이 어떻게 불려질지 정해주는 것. `article.like_users`와 `user.like_articles`가 그 예시. (한 모델이 다른 모델에게 지칭될 때 어떻게 불릴 것인지 결정)
+
+나를 follow 하는 사람들은 `followers`로 조회 가능, 내가 follow 하고 있는 사람들은 `followings`로 조회 가능.
+
+```python
+# [accounts] > models.py
+from django.db import models
+from django.contrib.auth.models import AbstractUser
+from djang.conf import settings
+
+# Create your models here.
+class User(AbstractUser):
+    followers = models.ManyToManyField(settings.AUTH_USER_MODEL, related_name="followings")
+```
+
+`settings.py`의 `AUTH_USER_MODEL`를 재지정 해줘야 한다.
+
+```python
+# settings.py
+AUTH_USER_MODEL = 'accounts.User'
+```
+
+Binding 되어있던 모델을 교체하는 경우에는 `migration` 함부로 하면 위험하다. 저장되어있는 정보를 날린 뒤에 `migration` 하자.
+
+1. db.sqlite 파일 삭제
+2. migration 파일 0001~000X 삭제
+
+![auth7](./img/auth7.png)
+
+`migrate`할 경우 column 이름에 `from`, `to` 키워드가 자동으로 붙어서 생성된다.
+
+
+
+커스텀 `User`를 사용할 경우, 회원가입을 하고자 할 때 아래와 같은 오류가 발생한다.
+
+```
+AttributeError at /accounts/signup/
+Manager isn't available; 'auth.User' has been swapped for 'accounts.User'
+```
+
+이 문제를 해결하기 위해, 커스텀 `modelform`을 생성해야 한다. (기본 User modelform의 Meta class의 Model bind가 auth.user로 고정되어 있기 때문. django.contrib.auth.forms의 UserCreationForm을 확인해보면 알 수 있다.)
+
+```python
+# [accounts] > forms.py
+from django.contrib.auth.forms import UserCreationForm
+
+class CustomUserCreationForm(UserCreationForm):
+    class Meta:
+        model = get_user_model()
+        # 원래 field값에 email도 추가해주자.
+        fields = UserCreationForm.Meta.fields + ('email',)
+```
+
+`views.py`의 `signup`함수에서도 변경사항을 반영해주자.
+
+`UserCreationForm` -> `CustomUserCreationForm`
+
+
+
+**프로필 페이지에 follow 버튼 추가하기**
+
+```html
+<h1>Profile page of {{ person }}</h1>
+<a class="btn btn-priamry" href="{% url 'accounts:follow' person.pk %}">팔로우</a>
+<hr>
+```
+
+팔로우를 위한 url 정의
+
+```python
+# [accounts] > urls.py
+...
+    path('follow/<int:person_pk>', views.follow, name='follow'),
+```
+
+`views.py`에 `follow()`함수 정의
+
+```python
+# [accounts] > views.py
+def follow(request, person_pk):
+    person = get_object_or_404(get_user_model(), pk=person_pk)
+    user = request.user
+
+    if person.followers.filter(pk=user.pk).exists():
+        person.followers.remove(user)
+    else:
+        person.followers.add(user) # person의 follower로 user를 추가한다.
+    return redirect('profile', person.username)
+```
+
+팔로워(팔로우) 명단 출력하기 & 팔로우 취소 버튼 표출하기
+
+DTL의 `with` 구문에는 다수의 변수를 한꺼번에 캐싱할 수 있다.
+
+```html
+{% if request.user in person.followers.all %}
+  <a class="btn btn-primary" href="{% url 'accounts:follow' person.pk %}">팔로우 취소</a>
+{% else %}
+  <a class="btn btn-primary" href="{% url 'accounts:follow' person.pk %}">팔로우</a>
+{% endif %}
+
+<p>팔로워수: {{ person.followers.count }}</p>
+<!-- <p>팔로워수: {{ person.followers.all|length }}</p> -->
+<p>
+  팔로워 명단:
+  {% with followers=person.followers.all followings=person.followings.all %}
+    {% for follower in followers %}
+      {{ follower }},
+    {% endfor %}
+</p>
+
+<p>팔로우수: {{ person.followings.count }}</p>
+<p>
+  팔로우 명단:
+    {% for following in followings %}
+      {{ following }},
+    {% endfor %}
+  {% endwith %}
+</p>
+```
+
+
+
+## 피드 만들기
+
+kuhn이 ashley를 follow하고 있을 때, articles/에서 ashley의 글들이 표출되도록 한다.(그 외 follow 중인 모든 사람들의 글)
+
+`filter()`의 `__in` 옵션 사용하여 현재 유저가 follow중인 유저의 글 + 내 글만 가져온다.
+
+`articles`와 `my_articles`를 합치는데는 django의 Q object를 사용한다. (혹은 iterools의 chain 사용가능)
+
+```python
+# [articles] > views.py
+...
+	# itertools의 chain 사용한 방법
+    followings = request.user.followings.all()
+    followings = chain(followings, [request.user])
+    articles = Article.objects.filter(user__in=followings)
+    context = {
+        'articles': articles,
+        'visits': visits_num,
+    }
+    
+    # Q object를 사용한 방법
+    followings = request.user.followings.all()
+    articles = Article.objects.filter(user__in=followings)
+    my_articles = request.user.article_set.all()
+    context = {
+        'articles': articles | my_articles,
+        'visits': visits_num,
+    }
+...
+```
+
+
+
+## 해시태그
+
+```python
+# [articles] > views.py
+def explore(request):
+    articles = Article.objects.all()
+    context = {
+        'context': articles,
+
+    }
+    return render(request, 'articles/explore.html', context)
+```
+
+```python
+# [articles] > urls.py
+urlpatterns = [
+	...
+    path('explore/', views.explore, name='explore'),
+]
+```
+
+```python
+# [articles] > models.py
+class Hashtag(models.Model):
+    content = models.TextField(unique=True)
+    
+    def __str__(self):
+        return self.content
+    
+class Article(models.Model):
+    ...
+    hashtags = models.ManyToManyField(Hashtag, blank=True) #blank=True:비어있어도 무방
+```
+
+![auth8](./img/auth8.png)
+
+
+
+```python
+# [articles] > admin.py
+class HashtagAdmin(admin.ModelAdmin):
+    list_display = ('content',)
+
+admin.site.register(Hashtag, HashtagAdmin)
+```
+
+`views.py`의 `create` 함수에서 hashtag도 같이 생성하도록 수정하자
+
+```python
+# [articles] > views.py
+def create(request):
+    ...
+    # hashtag 찾아서 저장하기
+    for word in article.content.split():
+        if word.startwith('#'):
+            #가져 오던가, 없으면 만들어라. (get()과 create())
+            #hashtag 결과값(객체), created(boolean): 새로 만들어진거면 True 
+            hashtag, created = Hashtag.objects.get_or_create(content=word)
+            article.hashtags.add(hashtag)
+    ...
+```
+
+`detail.html`에서 해시태그들을 출력해보자
+
+```html
+<h2>해시태그 목록</h2>
+<p>
+    {% with hashtags=article.hashtags.all %}
+        {% for hashtag in hashtags %}
+            <strong>{{ hashtag }}</strong>
+        {% endfor %}
+    {% endwith %}
+</p>
+```
+
+
+
+**해시태그들을 모아서 출력해보자**
+
+```python
+# [articles] > urls.py
+    path('tags/', views.tags, name='tags'),
+```
+
+```python
+# [articles] > views.py
+def tags(request):
+    tags = Hashtag.objects.all()
+    context = {
+        'tags': tags,
+    }
+    return render(request, 'articles/tags.html', context)
+```
+
+단, 각각의 태그를 클릭할 경우 해당 태그의 글 목록을 볼 수 있도록 링크를 단다.
+
+```html
+{% extends 'base.html' %}
+
+{% block body %}
+<h1>태그모음</h1>
+{% for tag in tags %}
+<a href="">{{ tag }}</a>
+{% endfor %}
+
+{% endblock %}
+```
+
+`articles/hashtag/hashtag_id` 로 접속시 해당 해시태그의 글들이 보이도록 하자
+
+```python
+# [articles] > urls.py
+    path('hashtag/<int:hashtag_pk>', views.hashtag, name='hashtag')
+```
+
+```python
+# [articles] > views.py
+def hashtag(request, hashtag_pk):
+    hashtag = get_object_or_404(Hashtag, pk=hashtag_pk)
+    # related_name을 정의하지 않았는데, 자동으로 이렇게 설정됨
+    articles = hashtag.article_set.all()
+    context = {
+        'hashtag': hashtag,
+        'articles': articles,
+    }
+    return render(request, 'articles/hashtag.html', context)
+```
+
+`hashtag.html`에서는 전달받은 `hashtag`에 해당하는 글 정보를 출력한다.
+
+```html
+{% extends 'base.html' %}
+
+{% block body %}
+<h1>{{ hashtag.content }}</h1>
+<ul>
+  {% for article in articles %}
+    <li>
+      <p>제목: {{ article.title }}</p>
+      <p>내용: {{ article.content }}</p>
+      <p>좋아요: {{ article.like_users.count }}</p>
+      <p>댓글: {{ article.comment_set.count }}</p>
+    </li>
+  {% endfor %}
+</ul>
+
+{% endblock %}
+```
+
+
+
+*반전*
+
+- 사실 `with` 문법을 사용자가 직접 해줄 필요가 없어. Django가 알아서 해준다.
+
+  - 엥? `with` 안쓰면 매번 쿼리를 새로 보내서 비효율적인거 아니였어? 응 아니야~ 
+
+- Django ORM의 **Lazy-Loading** 때문에 가능한 것.
+
+  Django의 쿼리는 마지막까지 지연된다.
+
+  Django는 정말 필요할 때만 알아서 호출한다.
+
+  우리는 Heavy하게 ORM에 기대도 된다.
+
+  
