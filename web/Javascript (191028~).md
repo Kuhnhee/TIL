@@ -13,6 +13,8 @@ Javascript는 browser 조작 언어로 시작됨
 
 언어적 업그레이드가 ES2015(ES6)부터 급격히 이루어짐
 
+Javascript 기본 타입에 관하여.... ([링크](https://nooheat.github.io/자바스크립트-타입과-typeof-정확히-알기/))
+
 
 
 **개발자 도구 - Console 창**
@@ -246,7 +248,7 @@ console.log(me.applProducts.macBook)// 중첩도 가능.
 파일 불러오기
 
 ```javascript
-const fs = require('fs')
+const fs = require('fs') // file system library import (node js)
 ```
 
 JS 객체를 JSON파일로 만들기
@@ -256,8 +258,8 @@ JS 객체를 JSON파일로 만들기
 //object - > JSON
 const meJSON = JSON.stringify(me)
 console.log(typeof(meJSON)) //string 
-// fs.writeFile('me.json', meJSON, err =>{})
-fs.writeFileSync('me.json', meJSON)
+// fs.writeFile('me.json', meJSON, err =>{}) //callback함수 필요
+fs.writeFileSync('me.json', meJSON) //동기적으로 만든 것
 ```
 
 JSON 파일을 불러와 객체로 저장하기
@@ -665,7 +667,7 @@ const sleep = sec => {
 
 위 코드를 실행시, 10초동안 이용자는 브라우저를 통해 아무것도 할 수 없어(while문이 동작하는 순간 다른 일을 할 수 없게 됨). 이런 일을 방지하기 위해 JS는 비동기적으로 설계된 것. 특정 작업이 다른 작업을 막는 것을 예방하는게 목적.
 
-과거 브라우저는 single-thread였음(tab이 한 개). 그 안에서 오래 걸리는 코드가 존재하면 다른 기능이 실행되지 못했음. 이럴 경우 사용자 경험이 좋지 않으므로, **종료를 예측할 수 없는(혹은 시간이 아주 오래 걸리는; XHRRequest, addEventListner 등)** 작업이 있는 경우 비동기적으로 작동한다. 
+과거 브라우저는 single-thread였음(tab이 한 개). 그 안에서 오래 걸리는 코드가 존재하면 다른 기능이 실행되지 못했음. 이럴 경우 사용자 경험이 좋지 않으므로, **종료를 예측할 수 없는(혹은 시간이 아주 오래 걸리는; XMLHttpRequest, addEventListner 등)** 작업이 있는 경우 비동기적으로 작동한다. 
 
 JS는 싱글 스레드인가? X
 
@@ -684,4 +686,268 @@ JS는 싱글 스레드인가? X
 JS는 비동기 언어다? X
 
 - 부분적으로 비동기적인 함수가 존재할 뿐이다.
+
+
+
+**비동기 함수를 어떻게 처리할까?**
+
+- **Callback**
+
+  비동기적함수는 `비동기적함수( , function)`의 형태를 가짐. 여기서 `function`이 Callback 함수.
+
+  code readability가 매우 떨어짐.
+
+- **Promise**
+
+  JS에서 공식적으로 제공하는 비동기 함수 처리방법
+
+- **async/wait**
+
+
+
+파일 Read/Write는 대표적인 비동기 함수
+
+```javascript
+const fs = require('fs') // file system library import (node js)
+
+console.log('파일 읽기 전')
+
+fs.readFile('me.json', () => {
+    console.log('파일 읽기')
+})
+
+console.log('끝')
+>>>
+파일 읽기 전
+끝
+파일 읽기
+```
+
+파이썬 스타일로 변수에 저장해도 읽을 수 없다. (비동기 함수이기 때문)
+
+```javascript
+let content = ''
+content = fs.readFile('me.json', () => {
+    console.log('파일 읽기')
+})
+console.log(content)
+>>>
+undefined
+파일 읽기
+```
+
+Callback 함수를 이용한 `readFile` 처리. Callback 함수의 parameter로 `err`, `data`를 전달한다.
+
+```javascript
+fs.readFile('me.json', (err, data) => {
+    console.log(JSON.parse(data))
+})
+```
+
+Callback함수 안에 다른 함수를 nesting 가능하다. (이걸 반복하다 보면 가독성이 매우 떨어져)
+
+```javascript
+fs.readFile('me.json', (err, data) => {
+    setTimeout(() => {
+        console.log(JSON.parse(data))
+    }, 10000)
+})
+```
+
+`readFileSync`는 `readFile`과 달리 동기적으로 파일을 읽을 수 있는 함수다.
+
+```javascript
+let content = ''
+content = fs.readFileSync('me.json')
+console.log(JSON.parse(content))
+
+>>>
+{
+  name: 'john',
+  appleProducts: { macBook: '2018pro', iPad: '2018pro' }
+}
+```
+
+
+
+
+
+**axios (python requests같은 역할. XMLHttpRequest와 유사)** [링크](https://github.com/axios/axios)
+
+axios cdn으로 추가
+
+```html
+<script src="https://unpkg.com/axios/dist/axios.min.js"></script>
+```
+
+`XMLHttpRequest`는 절차가 복잡 (매번 request 때마다 객체를 만들고, event listner로 핸들링 해줘야 했다.)
+
+`open()` `send()` `addEventListner()`의 세 단계를 하나로 줄여주는 것이 `axios`.
+
+`axios`도 **비동기 함수**이지만, callback을 사용하지 않는다. 대신, `then`이라는 메소드로 핸들링 할 수 있도록 만들어놨다.
+
+```javascript
+const URL = 'https://dog.ceo/api/breeds/image/random'
+axios.get(URL).then(function(){})
+```
+
+여기서 `axios.get(URL)`은 `Promise` 객체를 반환한다. (python의 `request` 객체와 유사)
+
+`Promise` 객체는 다음에 행할 행동을 정해줘야 한다.
+
+```javascript
+const URL = 'https://dog.ceo/api/breeds/image/random'
+
+// 1. Pormise 객체 (resolved)
+const result = axios.get(URL)
+
+// 2. Promise 객체를 까보기 위해서 .then()으로 메소드를 연결
+result.then((result) => {
+    console.log(result.data.message)
+})
+
+// 위 과정을 한 줄로
+axios.get(URL)
+    .then(result => console.log(result.data.message)) //이미지 url 출력
+```
+
+
+
+Dog 버튼을 눌렀을 때 랜덤한 개 사진이 출력되도록 하자
+
+```javascript
+const URL = 'https://dog.ceo/api/breeds/image/random'
+const dogButton = document.querySelector('#dog')
+const catButton = document.querySelector('#cat')
+
+const getDogAndPush = () => {
+    axios.get(URL)
+        .then(response => {
+            // showroom 초기화
+            document.querySelector('#showroom').innerHTML = ''
+            // <body> 아래에 <img> 태그 삽입
+            const imgURL = response.data.message
+            const imgTag = document.createElement('img')
+            imgTag.src = imgURL
+            document.querySelector('#showroom').appendChild(imgTag)
+        })
+}
+
+//버튼이 눌려졌을 때 (getDogAndPush)
+// 1. axios -> dog 사진 요청
+// 2. <body> 아래에 <img> 받아온 사진 보여주기
+dogButton.addEventListener('click', getDogAndPush)
+```
+
+이미지 크기 고정하기
+
+```html
+<style>
+    img {
+        width: 300px;
+        height: 300px;
+    }
+</style>
+```
+
+
+
+---
+
+
+
+## JS로 좋아요 기능 구현하기
+
+Django를 backend로 사용하고, DTL을 통해 Javascript를 사용해보자
+
+*RECAP* 프로젝트를 재활용한다.
+
+*eventListner의 callback function은 arrow function을 쓰지 않는다.*
+
+- *this*의 binding이 달라지기 때문.
+
+```html
+<!--[articles] > [detail.html] -->
+
+<!--button 안에 현재 article의 pk값을 숨겨놓자 -->
+{% if user in article.like_users.all %}
+<button data-id="{{ article.pk }}" class="btn btn-outline-primary" id="like-button">
+    좋아요 취소
+</button>
+{% else %}
+<button data-id="{{ article.pk }}" class="btn btn-primary" id="like-button">
+    좋아요
+</button>
+{% endif %}
+```
+
+`button` 태그 안에 `data-id`라는 값을 지정해 주면, `dataset`이라는 영역에 `id`라는 key를 가진 값이 저장된다. `e.target.dataset`에 들어가면, `id`라는 이름을 가진 영역에 `articke.pk`가 들어가있다. 여기서 `target`은 `likeButton`을 의미한다. (`data-hi = "{{ article.title }}"` 을 `button` 태그 안에 입력할 경우, `dataset` 영역 안 `hi`라는 키값에 `article.title`이 저장된다.)
+
+`axios.get()`명령을 통해 돌아온 response(`Promise` 객체)는 html 페이지를 담고 있을 것. (views.py의 like 함수가 article 상세보기 페이지를 반환하므로) like 함수가 JSON을 반환할 수 있도록 views.py를 바꿔보자
+
+```python
+# [articles]>[views.py]>like
+from django.http import Http404, HttpResponse, JsonResponse
+#python response를 Json형식으로 바꿔주는게 JsonResponse
+def like(request, article_pk):
+    article = Article.objects.get(pk=article_pk)
+    user = request.user
+    if article.like_users.filter(pk=user.pk).exists():
+        article.like_users.remove(user)
+        liked = False
+    else:
+        article.like_users.add(user)
+        liked = True
+    context = {
+        'liked': liked,
+        'count': article.like_users.count(),
+    }
+    return JsonResponse(context)
+```
+
+좋아요 버튼 변경을 위한 스크립트
+
+```javascript
+<script>
+    // 좋아요 버튼을 클릭하면, 좋아요 DB를 업데이트하고, 버튼을 바꾼다. (EventListner 사용)
+    const likeButton = document.querySelector('#like-button')
+likeButton.addEventListener('click', function(e){
+    // 좋아요 DB를 업데이트 == articles/:id/like url로 요청을 보냄
+    // console.log(e.target.dataset.id)  //target = likeButton, data로 시작하는 모든 값들은 dataset에 저장됨
+    const articleId = e.target.dataset.id
+    axios.get(`/articles/${articleId}/like/`)
+        .then(response => {
+        // console.log(response.data.liked) //false or true
+        // 버튼을 '좋아요 취소'로 변경
+        if (response.data.liked) {
+            // 테두리 변경 (클래스 삭제, 추가)
+            e.target.classList.remove('btn-primary')
+            e.target.classList.add('btn-outline-primary')
+            // 내용 변경
+            e.target.innerText = '좋아요 취소'
+        } else {
+            e.target.classList.remove('btn-outline-primary')
+            e.target.classList.add('btn-primary')
+            e.target.innerText = '좋아요'
+        }
+    })
+})
+</script>
+```
+
+좋아요 카운트 변경을 위한 스크립트
+
+```html
+<!--[articles] > [detail.html] -->
+    <p>좋아요: <span id="like-count">{{ article.like_users.count }}</span></p>
+```
+
+```javascript
+const likeCount = document.querySelector('#like-count')
+...
+              // 카운트 반영
+              likeCount.innerText = response.data.count
+```
+
+좋아요 누른 사람의 명단을 위한 스크립트
 
