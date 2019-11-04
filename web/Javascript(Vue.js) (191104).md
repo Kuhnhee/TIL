@@ -137,7 +137,7 @@ JS의 `this`는 JAVA의 `this`와 다르다. `addEventListner`의 콜백 함수�
 ### SPA(Single Page Application)
 
 - 페이지 로드 없이, 한 번에 한 페이지 안에서 모든걸 할 수 있는 어플리케이션
-  - 이를 위해서는 JS를 통핸 Client Side Rendering을 할 수 밖에 없다.
+  - 이를 위해서는 JS를 통해 Client Side Rendering을 할 수 밖에 없다.
 
 ![vue1](./img/vue1.PNG)
 
@@ -210,4 +210,415 @@ bootstrap에서의 Responsive(반응형)과 JS에서의 Reactive(반응형)은 �
 
 
 **Vue 객체에 선언된 함수를 통해, Data를 입력되는 값으로 변경하기**
+
+```javascript
+const app = new Vue({
+    el: '#app',
+    data: {
+        message: '안녕 Vue.js',
+        name: '건희',
+    },
+    methods: {
+        changeName(input) { //축약형. 원래는 changeName: function() {}
+            this.name = input
+        }
+    }
+})
+```
+
+
+
+### ToDo 리스트 만들기
+
+**Vue 객체의 data에 배열을 만들 수 있다.**
+
+```javascript
+const app = new Vue({
+    el: '#app',
+    data: {
+        todos: [
+            '꽃 사서 배달시키기',
+            'IR 자료 만들기',
+            '과목평가 문제 검토하기',
+            '프로젝트 명세 검토하기',
+        ],
+    },
+    methods: {
+    }
+})
+```
+
+**리스트 순회하면서 출력하기**
+
+`todos`에 있는 값들 하나 하나를 `todo`로 접근한다.
+
+```html
+<div id="app">
+    <h1>Vue ToDo</h1>
+    <ul>
+        <li v-for="todo in todos">{{ todo }}</li>
+    </ul>
+</div>
+```
+
+할 일을 완료했을 때 항목이 지워질 수 있도록, Vue 인스턴스의 데이터 수정
+
+```javascript
+const app = new Vue({
+    el: '#app',
+    data: {
+        todos: [
+            { content: '꽃 사서 배달시키기', complete: false },
+            { content: 'IR 자료 만들기', completed: false },
+            { content: '과목평가 문제 검토하기', completed: false },
+            { content: '프로젝트 명세 검토하기', completed: false },
+        ],
+    },
+    methods: {
+    }
+})
+```
+
+`v-if`를 사용해 `completed`가 `true`인 경우 보이지 않도록 html 파일 수정
+
+```html
+<div id="app">
+    <h1>Vue ToDo</h1>
+    <ul>
+        <li v-for="todo in todos" v-if="!todo.completed">
+            {{ todo.content }}
+        </li>
+    </ul>
+</div>
+```
+
+`v-else`를 사용해 완료된 경우 "완료" 메세지가 출력되기만 하도록 html 파일 수정
+
+```html
+<li v-else>[완료!]</li>
+```
+
+`v-else-if`도 있으니 기억해두자.
+
+`v-on`을 사용해 클릭 되었을때 `completed`가 `true`가 될 수 있도록 수정.
+
+`v-on:click="todo.completed=true"`와 같이 `v-on:click` 다음에 바로 식을 써줄 수도 있다. 아래는 vue 객체에 함수를 추가하는 방식으로 구현한 코드이다.
+
+```html
+<li v-for="todo in todos" v-if="!todo.completed" v-on:click="check(todo)">
+```
+
+```javascript
+// vue 객체
+methods: {
+    check(todo) {
+        todo.completed = true
+    }
+}
+```
+
+완료 후 재 클릭시 다시 `completed`가 `false`가 될 수 있도록 수정.
+
+```html
+<ul>
+    <li v-for="todo in todos" v-if="!todo.completed" v-on:click="check(todo)">
+        {{ todo.content }}
+    </li>
+    <li v-else v-on:click="check(todo)">[완료!]</li>
+</ul>
+```
+
+```javascript
+// vue 객체
+methods: {
+    check(todo) {
+        todo.completed = !todo.completed
+    },
+}
+```
+
+
+
+**이미지 추가하기(속성 바인딩) & 약어**
+
+`v-bind`를 사용하여 이미 url 삽입하면 html 속성(src)에 속성값을 넣을 수 있다. 단, 이 때는 mustache 문법을 사용하지 않는다.
+
+```javascript
+data: {
+        imgSrc: "https://joshua1988.github.io/images/posts/web/vuejs/logo.png",
+        height: 300,
+        width: 300,
+        red: "red",
+        yellow: "yellow",
+},
+```
+
+```html
+<img v-bind:src="imgSrc">
+```
+
+`height`, `width` 속성값에도 마찬가지로 binding할 수 있다.
+
+```html
+<img v-bind:src="imgSrc" v-bind:width="width" v-bind:height="height">
+```
+
+- `v-bind`의 약어로 `:`를 사용할 수 있다.
+
+  ```html
+  <img :src="imgSrc" :width="width" :height="height">
+  ```
+
+- `v-on`은 약어로`@`를 사용할 수 있다.
+
+  ```html
+  <li v-for="todo in todos" v-if="!todo.completed" @:click="check(todo)">
+  ```
+
+`class` 속성값도 마찬가지로, `:class="MyClass"`와 같이 식별자 바인딩이 가능하다. **(동적으로 class를 바꿀 수 있다.)** => **Class Name Active Binding**
+
+
+
+**입력값 바인딩**
+
+`v-model`을 사용하여 입력되는 값과 vue 인스턴스의 값을 바인딩한다.
+
+```html
+<input type="text" v-model="newTodo">
+<p>{{ newTodo }}</p>
+```
+
+`Enter`키가 눌리는 이벤트를 기다리기 위한 directive `@` (`v-on`) 추가.
+
+```html
+<input type="text" v-model="newTodo" @keyup.enter="addTodo">
+<p>{{ newTodo }}</p>
+```
+
+새로운 함수 `addTodo` 정의. `todos` 리스트에 새로운 javascript object를 push한다.
+
+```javascript
+// vue 객체
+addTodo() {
+    this.todos.push({
+        content: this.newTodo,
+        completed: false,
+    })
+    this.newTodo = '' // 입력창 비움
+},
+```
+
+`button`을 눌러도 동일한 일이 일어나도록 하자.
+
+```html
+<button @click="addTodo"> + </button>
+```
+
+
+
+**완료된 목록 삭제하기 (array filter method 사용)**
+
+`button` 생성
+
+```html
+<button @click="deleteCompleted">완료 목록 전체 삭제</button>
+```
+
+함수 `deleteCompleted` 정의
+
+```javascript
+// vue 객체
+deleteCompleted() {
+    this.todos = this.todos.filter(function(todo){
+        return todo.completed === false
+    })
+},
+```
+
+
+
+**Checkbox 만들기**
+
+```html
+<ul>
+    <li :class="red" v-for="todo in todos" v-if="!todo.completed" @click="check(todo)">
+        <input type="checkbox" v-model="todo.completed">
+        {{ todo.content }}
+    </li>
+    <li v-else v-on:click="check(todo)">
+        <input type="checkbox" v-model="todo.completed">
+        [완료!]
+    </li>
+</ul>
+```
+
+
+
+**완료된 항목들에는 줄긋기**
+
+`style`속성 바인딩 시에는 CSS와 문법이 살짝 달라진다. `font-size`는 `fontSize`로 쓰는 등, camel case로 쓴다.
+
+```html
+<div :style="{ color: activeColor, fontSize: fontSize}">
+    html 스타일링 테스트
+</div>
+```
+
+`activeColor`, `fontSize`값을 vue 객체의 data 내에서 선언해준다.
+
+```javascript
+const app = new Vue({
+    el: '#app',
+    data: {
+        activeColor: 'magenta',
+        fontSize: '30px',
+    },
+    ...
+```
+
+toggle class 활용하여 깔끔하게 만들기 (flag를 사용하여 class를 적용할지, 안할지 결정 가능)
+
+```html
+<style>
+    .completed {
+        text-decoration: line-through;
+    }
+</style>
+```
+
+```html
+<ul>
+    <li :class="{completed: todo.completed}" v-for="todo in todos">
+        <input type="checkbox" v-model="todo.completed">
+        {{ todo.content }}
+    </li>
+</ul>
+```
+
+
+
+**파티션 나누기**
+
+상태를 나타내는 `status` 변수값 추가해서, `status`값에 맞게 필터링 된 값을 보여준다.
+
+```javascript
+const app = new Vue({
+    el: '#app',
+    data: {
+        status: 'all', //all:다 보여주기, complete, active
+    },
+```
+
+상태에 따라 동작을 달리하는 `todoByStatus`함수 선언
+
+```javascript
+// vue 객체
+todoByStatus() {
+    // 진행 중인 일(active)
+    if (this.status === 'active') {
+        return this.todos.filter(function(todo){
+            return !todo.completed
+        })
+    }
+
+    // 완료된 일(completed)
+    if (this.status === 'completed') {
+        return this.todos.filter(function(todos){
+            return todo.completed
+        })
+    }
+
+    return this.todos
+}
+```
+
+위 함수에서 반환되는 값들만 출력하기
+
+```html
+<ul>
+    <li :class="{completed: todo.completed}" v-for="todo in todoByStatus()">
+		...
+```
+
+어떤 모드로 볼지 결정하는 `select`태그
+
+```html
+<select v-model="status">
+    <option value="all" selected>전체보기</option> <!--초기값 지정-->
+    <option value="active">진행중</option>
+    <option value="completed">완료</option>
+</select>
+```
+
+
+
+**빈 리스트는 들어오지 못하게 막자**
+
+```javascript
+// vue 객체
+addTodo() {
+    if (this.newTodo.length != 0){
+        this.todos.push({
+            id: Date.now(),
+            content: this.newTodo,
+            completed: false,
+        })
+    }
+    this.newTodo = '' // 입력창 비움
+},
+```
+
+
+
+**Bug fix**
+
+여기까지 했을 때 문제: 진행중 리스트를 띄운 상태에서 체크박스에 체크를 하면 이상하게 동작함
+
+- 렌더를 F/W에게 맞기다 보니, 조건부 분류를 할 때 정확하게 매핑 못하는 문제. 정확히 `key`값을 지정해서 수정할 수 있다.
+
+- 각각의 `todo`에 id를 지정해서 정확하게 다룰 수 있도록 해야 한다.
+
+  ```html
+  <li ... :key="todo.id">
+  ```
+
+- ```javascript
+      const app = new Vue({
+        el: '#app',
+        data: {
+          todos: [
+            { id:1, content: '꽃 사서 배달시키기', completed: false },
+            { id:2, content: 'IR 자료 만들기', completed: false },
+            { id:3, content: '과목평가 문제 검토하기', completed: false },
+            { id:4, content: '프로젝트 명세 검토하기', completed: false },
+          ],
+        ...
+  ```
+
+- data listing할 때 반드시 id값을 제공해 주도록 하자.
+
+
+
+여전히 버기한 부분 존재: 새로운 todo 항목을 추가할 때, id auto incrementing이 어렵다. unique한 값으로 손쉽게 넣어줄만한게 없을까?
+
+- **시간**을 id로 사용한다.
+
+- 새로 추가되는 todo는 id값을 시간으로 사용한다.
+
+  ```javascript
+  addTodo() {
+      this.todos.push({
+          id: Date.now(),
+          content: this.newTodo,
+          completed: false,
+      })
+      this.newTodo = '' // 입력창 비움
+  },
+  ```
+
+향후 DB 연결시, 위와 같이 id값을 지정해줄 필요 없이 DB 내의 pk값을 사용하면 된다.
+
+
+
+
 
