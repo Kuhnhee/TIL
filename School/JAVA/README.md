@@ -170,13 +170,35 @@ JAVA 어플리케이션을 더 빠르고 효율적으로 동작할 수 있도록
 
 
 
+### 메모리 누수
+
+메모리 누수(Memory Leak)는 프로그램이 필요하지 않은 메모리를 계속 점유하고 있는 현상이다.
+
+기본적으로 JAVA는 가상머신이 메모리를 관리해주어(+GC) OS 레벨에서의 메모리 누수가 방지된다.
+
+JAVA 프로그램 실행시 JVM 옵션을 주어서 OS에 요청한 사이즈 만큼의 메모리를 할당 받아서 실행하게된다. 할당받은 이상의 메모리를 사용하게 되면 에러가 나면서 자동으로 프로그램이 종료된다. 그러므로 현재 프로세스에서 메모리 누수가 발생하더라도 **실행중인 것만 죽고, 다른 것에는 영향을 주지 않는다.**
+
+참고자료: ([링크](https://118k.tistory.com/608))
+
+JAVA에서 메모리 누수는 더이상 사용하지 않는 객체가 GC에 의해 회수되지 않고 계속 누적되는 현상이다. Old 영역에 누적된 객체로 인해서 GC가 빈번하게 발생하게 되고, 프로그램의 응답속도가 늦어지다 결국 OOM(OutOfMemory) 오류로 프로그램이 종료된다.
+
+주로 빈번한 전역변수의 선언이나, `list`, `hashmap`같은 콜렉션에 저장한 객체를 해제하지 않고 계속 유지하레 되면서 발생한다. 아래는 메모리 유수가 발생하는 대표적인 예시들이다. ([링크](https://dzone.com/articles/memory-leak-andjava-code))
+
+1. `Integer`, `Long`같은 래퍼 클래스(Wrapper)를 이용하여, 무의미한 객체를 생성하는 경우
+2. `map`에 캐쉬 데이터를 선언하고 해제하지 않는 경우
+3. 스트림 객체를 사용하고 닫지 않는 경우
+4. `map`의 키를 사용자 객체로 정의하면서 `equals()`, `hashcode()`를 재정의하지 않아, 같은 키로 착각하여 데이터가 계속 쌓이게 되는 경우
+5. `map`의 키를 사용자 객체로 정의하면서 `equals()`, `hashcode()`를 재정의 하였지만, 키값이 불변(immutable) 데이터가 아니라서 데이터 비교시 계속 변하게 되는 경우
+
+6. 자료구조를 생성하여 사용하면서, 구현 오류로 인해 메모리를 해제하지 않는 경우
+
+
+
 ## Java Thread
 
 **Thread Life Cycle**
 
 참고자료: [링크1](https://zion437.tistory.com/133) [링크](https://sjh836.tistory.com/121)
-
-
 
 **Thread Pool**
 
@@ -186,3 +208,355 @@ JAVA 어플리케이션을 더 빠르고 효율적으로 동작할 수 있도록
 
 쓰레드 풀은 제한된 개수의 쓰레드를 JVM에 맡기는 방식으로, 동시에 실행되는 쓰레드의 개수를 제한한다. 실행할 작업을 풀에 전달하면 개발자가 쓰레드를 딕접 생성할 필요 없이 **JVM이 풀의 쓰레드 중 하나를 선택해** (이 때 선택 가능한 쓰레드를 Idle Thread라고 한다.) 실행한다.
 
+
+
+## Multi Thread 환경에서의 개발
+
+### Field Member
+
+`필드(field)`란 클래스에 변수를 정의하는 공간을 의미한다. 이곳에 변수를 만들 경우 메소드 끼리 변수를 주고 받는 데 있어서 참조하기 쉬우므로 정말 편리한 공간 중 하나이다. 하지만 객체가 여러 스레드가 접근하는 **싱글톤 객체**라면 `field`에서 상태값을 가지고 있으면 안된다. 모든 변수를 parameter로 넘겨받고 return하는 방식으로 코드를 구성해야 한다.
+
+### 동기화(Synchronized)
+
+필드에 `Collection`이 불가피하게 필요할 때, JAVA에서는 `synchronized` 키워드를 통해 스레드 간 **race condition**을 통제한다. 이 키워드를 기반으로 구현된 `Collection`들도 많이 존재한다. `List`를 대신하여 `Vector`를 사용할 수 있고, `Map`을 대신하여 `HashTable`을 사용할 수 있다. 하지만 이 `Collection`들은 제공하는 API가 적고 성능도 좋지 않다.
+
+기본적으로는 `Collections` util 클래스에서 제공하는 `static` 메소드들을 통해 이 문제를 해결한다. `Collections.synchronizedList()`, `Collections.synchronizedSet()`, `Collections.synchronizedMap()` 등이 존재한다.
+
+### ThreadLocal
+
+**스레드 사이에 간섭이 없어야 하는 데이터**에 사용한다. 멀티스레드 환경에서는 클래스의 필드에 멤버를 추가할 수 없고 매개변수로 넘겨받아야 하기 때문이다. 즉, **스레드 내부의 싱글톤을 사용하기 위해 사용**한다. 주로 *사용자 인증, 세션 정보, 트랜잭션 컨텍스트*에 사용한다.
+
+Thread Pool 환경에서 ThreadLocal을 사용하는 경우 ThreadLocal 변수에 보관된 데이터의 사용이 끝나면 반드시 해당 데이터를 삭제해 주어야 한다. 그렇지 않으면 이후 쓰레드가 재사용될 때 올바르지 않은 데이터를 참조할 수 있다.
+
+ThreadLocal을 사용하는 방법
+
+1. ThreadLocal 객체를 생성한다.
+2. ThreadLocal.set() 메서드를 이용해서 **현재 스레드의 로컬 변수에 값을 저장**
+3. ThreadLocal.get() 메서드를 이용해서 **현재 스레드의 로컬 변수 값을 읽어온다.**
+4. ThreadLocal.remove() 메서드를 이용해서 **현재 스레드의 로컬 변수 값을 삭제한다.**
+
+
+
+## Generic
+
+JAVA의 안정성을 담당한다. **다양한 타입의 객체**들을 다루는 메소드나 `Collection` 클래스에서 사용하는 것으로, **컴파일 과정에서 타입체크를 해주는 기능**이다. 객체의 타입을 컴파일 시에 체크하기 때문에 객체의 타입 안정성을 높이고 형변환의 번거로움을 줄여준다. 
+
+자연스럽게 코드도 간결해진다. 예를 들어, **`Collection`에 특정 객체만 추가될 수 있도록**, 또는 특정한 클래스의 특징을 갖고 있는 경우에만 추가될 수 있도록 하는 것이 제네릭이다.
+
+이로 인한 장점은 `Collection`에 들어온 값이 내가 원하는(의도한) 값인지 별도의 로직처리를 구현할 필요가 없어진다. 또한 API를 설계하는데 있어서 보다 명확한 의사전달이 가능하다.
+
+*Remind) Python과 같은 동적 타입 언어들은 런타임에 변수 타입을 체크한다.*
+
+
+
+## Wrapper class
+
+참고자료: [링크](https://hyeonstorage.tistory.com/168) 
+
+예) `Integer` 클래스로부터 생성된 객체는 하나의 `int` 값을 저장할 수 있다.
+
+```java
+Integer age = new Integer(30);
+Double avg = new Double("3.145");
+```
+
+기본 자료형(Primitve data type)에 대한 클래스 표현을 Wrapper class라 한다. `Integer`, `Float`, `Boolean` 등이 Wrapper class의 예다. `int`를 `Integer`라는 객체로 감싸서 저장해야 하는 이유가 있을까? 일단 컬렉션에서 **제네릭**을 사용하기 위해서는 Wrapper class를 사용해줘야 한다. 또한 `null`값을 반환해야만 하는 경우에는 return type을 Wrapper class로 지정하여 `null`을 반환하도록 할 수 있다. 하지만 이러한 상황을 제외하고 일반적인 상황에서 Wrapper class를 사용해야 하는 이유는 객체지향적인 프로그래밍을 위한 프로그래밍이 아니고서야 없다. 일단 해당 값을 비교할 때, Primitive data type인 경우에는 `==`로 바로 비교해줄 수 있다. 하지만 Wrapper class인 경우에는 `.intValue()`메소드를 통해 해당 Wrapper class의 값을 가져와 비교해줘야 한다.
+
+*Wrapper class 명단*
+
+- *Byte | Short | Integer | Long | Float | Double | Character | Boolean | Void*
+
+*Wrapper class 기본 메소드 명단*
+
+- byteValue() | shortValue() | intValue() | longValue() | floatValue() | charValue() | doubleValue() | booleanValue()
+
+*JAVA Primitive Data Types* ([링크](https://www.w3schools.com/java/java_data_types.asp))
+
+*(Integer types)*
+
+- byte | 1byte | -128 ~ 127
+- short | 2bytes | -32,768 ~ 32,768
+- int | 4bytes | -2,147,483,648 ~ 2,147,483,647
+- long | 8bytes | -9,223,372,036,854,775,808 ~ 9,223,372,036,854,775,807
+
+*(Floating point types)*
+
+- float | 4bytes | 6~7 decimal digits
+- double | 8bytes | 15 decimal digits
+
+*(Others)*
+
+- boolean | 1bit | true or false
+- char | 2bytes | single character/letter or ASCII values
+
+**Boxing & Unboxing**
+
+Wrapper class는 산술연산을 위해 정의된 클래스가 아니기 때문에, 이 클래스의 인스턴스에 저장된 값은 변경이 불가능하며, 값을 저장하는 새로운 객체의 생성 및 참조만 가능하다.
+
+- Boxing: 기본 자료형을 Wrapper class의 객체로 변경하는 과정
+
+  ```java
+  Integer age = new Integer(30);
+  ```
+
+- Unboxing: 각각의 객체를 기본 자료형으로 변경하여 사용하는 과정
+
+  ```java
+  int age2 = age.intValue()
+  ```
+
+**AutoBoxing**
+
+Wrapper class에 상응하는 Primitive data type일 경우에만 가능하다.
+
+아래 예에서 `Integer`라는 Wrapper class로 설정한 collection에 데이터를 add할 때 `Integer`객체로 감싸서 값을 넣을 필요 없이, JAVA 내부에서 자동적으로 `AutoBoxing` 해준다.
+
+```JAVA
+List<Integer> lists = new ArrayList<>();
+lists.add(1);
+```
+
+
+
+## Annotation
+
+참고자료: [링크](https://asfirstalways.tistory.com/309) 
+
+**요약**
+
+주석처럼 코드에 달아 클래스에 특별한 의미를 부여하거나 기능을 주입할 수 있다. *유지 정책(retention policy)*를 통해 유지되는 기간을 지정할 수도 있다. 크게 JDK에 내장되어 있는 `built-in annotation`, 어노테이션에 대한 정보를 나타내기 위한 어노테이션인 `Meta annotation`, 개발자가 직접 만들어 내는 `Custom Annotation`이 있다.
+
+**역할**
+
+기존의 JAVA Web App들은 구성과 설정값들을 외부의 XML 설정 파일에 명시하는 방법으로 프로그래밍 되었다. 따라서 재컴파일 없이도 쉽게 변경사항을 적용할 수 있었지만, 프로그램 작성을 위해 매번 많은 설정을 작성해야 한다는 불편함이 존재했다. 이후 웹 앱의 규모가 커짐에 따라 이러한 불편함은 더 커졌고, 이를 해결하기 위해 고안된 것이 어노테이션이다.
+
+이를 사용하면 데이터에 대한 유효성 검사조건을 어노테이션을 사용하여 직접 명시함으로써 유효조건을 쉽게 파악할 수 있게 되며 코드가 깔끔해진다. 단순히 부가적인 표현 뿐만 아니라, `reflection`을 이용하면 어노테이션 지정만으로 원하는 클래스를 주입할 수도 있다.
+
+어노테이션은 크게 *문서화*, *컴파일러 체크*, *코드 분석*을 위한 용도로 사용된다. 본질적인 목적은 *소스 코드에 메타데이터를 표현하는 것*이다.
+
+### `Built-in Annotation`
+
+JAVA에 내장되어 있는 어노테이션. 주로 컴파일러를 위한 것으로, 컴파일러에게 유용한 정보를 제공.
+
+**@Override**
+
+메소드 앞에만 붙일 수 있으며, 현재 메소드가 **수퍼클래스의 메소드를 오버라이드한 메소드임을 컴파일러에게 명시**한다. 오버라이딩 할 때 메소드 명에서 오타가 발생할 수 있는데, 이 경우 어노테이션을 통해 오타가 발생할 수 있는 부분을 잡아줄 수 있다.
+
+**@Deprecated**
+
+차후 지원되지 않을 수 있기에 사용을 지양해야 할 메소드를 나타낸다.
+
+**@SupressWarning**
+
+경고를 제거
+
+**@FunctionalInterface**
+
+컴파일러에게 다음의 인터페이스는 함수형 인터페이스라는 것을 알린다. 이 또한 오버라이딩 어노테이션과 같이 실수를 미연에 방지하기 위해 사용된다.
+
+### `Meta-Annotation`
+
+어노테이션에 사용되는 어노테이션. **해당 어노테이션의 동작대상을 결정**한다. 주로 새로운 어노테이션을 정의할 때 사용한다.
+
+**@Target**
+
+어노테이션이 적용가능한 대상을 지정하는데 사용한다. 여러 값을 지정할 때는 배열처럼 `{}`를 사용한다.
+
+**@Retention**
+
+어노테이션이 유지되는 기간을 지정한다.
+
+1. **SOURCE**
+
+   *소스 파일*에만 존재하며, 클래스 파일에는 존재하지 않는다. @Override, @SupressWarning같은 **컴파일러에 의해 사용되는 어노테이션** 유지 정책이  SOURCE에 해당한다. 컴파일러를 직접 작성할 게 아니면 사용할 일이 없다.
+
+2. **CLASS**
+
+   *클래스 파일*에 존재하지만 런타임 시에 사용이 불가능하다. @Retention의 default 값이지만, 런타임에 사용이 불가능해 잘 사용되지 않는다.
+
+3. **RUNTIME**
+
+   ***클래스 파일***에 존재하며 ***런타임***에도 사용 가능하다. 런타임 시에 Reflection을 통해 클래스 파일에 저장된 어노테이션 정보를 읽어서 처리할 수 있게 된다.
+
+**@Documented**
+
+어노테이션에 대한 정보가 javadoc으로 작성한 문서에 포함되도록 할 때 사용하는 어노테이션. `built-in-annotation` 중 @Override와 @SuppressWarnings를 제외학는 모두 이 메타 어노테이션이 붙어있다.
+
+```java
+@Documented
+@Retention(RetentionPolicy.RUNTIME)
+@Target(ElementType.TYPE)
+public @interface FunctionalInterface() {}
+```
+
+**@Inherited**
+
+어노테이션이 자손 클래스에도 상속되도록 하는 어노테이션이다. 조상 클래스에 붙여놓을 경우 자손 클래스에도 이 어노테이션이 붙은 것과 같이 인식된다.
+
+**@Native**
+
+네이티브 메서드에 의해 참조되는 상수필드에 붙이는 어노테이션이다. 네이티브 메서드란 JVM이 설치된 **OS의 메서드**를 말한다. 네이티브 메서드는 보통 C언어로 작성되어 있으며 JAVA에서는 메서드의 선언부만 정의하고 구현은 하지 않는다. Object 클래스의 메서드들은 대부분 네이티브 메서드이다. 우리는 **JAVA라는 언어를 통해 OS의 메서드를 호출하고 있는 것과 마찬가지이다.** 네이티브 메서드와 자바에 정의된 메서드를 연결하는 것을 **JNI(JAVA Native Interface)**라고 한다. (JVM, GC 파트 remind)
+
+### `Custom-Annotation`
+
+```java
+public @interface MyAnnotation {}
+```
+
+어노테이션 타입의 선언은 '특별한' 종류의 인터페이스 선언이다. 단, 일반적인 인터페이스 선언과 구분하기 위해 예약어 `interface` 앞에 `@`를 붙여준다. 어노테이션 타입은 암묵적으로 `java.lang.annotation.Annotation`을 확장하기 때문에 **extends 절을 가질 수 없다.**
+
+다음과 같은 형식을 갖는다.
+
+```pseu
+@interface [어노테이션 이름] {
+	타입 요소이름();
+	...
+}
+```
+
+
+
+어노테이션은 메타데이터 저장을 위해 **클래스처럼 멤버를 가질 수 있다.** 어노테이션 내에 선언된 메소드를 어노테이션의 **요소(element)**라고 한다. 요소의 개수에 따라 Maker 어노테이션, Single-value 어노테이션, Full 어노테이션으로 분류할 수 있다.
+
+**Maker 어노테이션**
+
+- 요수 개수: 0
+
+  단순히 표식으로서 상요되는 어노테이션. 컴파일러에게 어떤 의미를 전달하는데 사용된다.
+
+**Single-value 어노테이션**
+
+- 요소 개수: 1
+
+  요소로 단일 변수만을 갖기 때문에 값만을 명시하여 데이터를 전달할 수 있다.
+
+  ```java
+  @interface TestInfo {
+      String value();
+  }
+  @TestInfo("passed") // @TestInfo(value="passed") 와 동일
+  class MyClass{...}
+  ```
+
+**Full 어노테이션**
+
+- 요소 개수: 2 이상
+
+  데이터를 배열 안에 key-value 형태로 전달한다.
+
+  ```java
+  @AnnotationName(element1=value1, element2=value2, ...)
+  ```
+
+  *이 요소에는 일정 규칙이 존재한다.*
+
+  1. 요소의 타입은 기본형, String, enum, 어노테이션, Class만 허용한다.
+  2. 요소의 `()` 안에 매개변수를 선언할 수 없다.
+  3. 예외를 선언할 수 없다.
+  4. 요소를 타입 매개변수로 정의할 수 없다. (제너릭의 타입?)
+  5. 어노테이션의 각 요소는 기본값(`default`)을 가질 수 있다.
+
+  ```java
+  @interface TestInfo {
+      int count() default 1;
+  }
+  @TestInfo("passed") // @TestInfo(count=1)와 동일
+  class myClass{...}
+  ```
+
+
+
+***[추가) enum이 뭐지?](#Enum)***
+
+
+
+
+
+## final keyword
+
+- final class
+
+  다른 클래스에서 **상속하지 못한다.**
+
+- final method
+
+  다른 메소드에서 **오버라이딩하지 못한다.**
+
+- final variable
+
+  변하지 않는 **상수값이 되어** 새로 할당할 수 없는 변수가 된다.
+
+*혼동 주의*
+
+- finally
+
+  `try-catch` 혹은 `try-catch-resource` 문을 사용할 때, 작업 성공 여부와 관계없이 마무리 해줘야하는 작업이 존재할 경우 작성하는 코드 블록
+
+- finalize()
+
+  `GC`에 의해 호출되는 메소드로 함부로 사용하지 말 것.
+
+
+
+## Overriding vs Overloading
+
+- 오버라이딩(Overriding)
+
+  상위 클래스에 존재하는 메소드를 **하위 클래스에서 필요에 맞게 재정의**하는 것
+
+- 오버로딩(Overloading)
+
+  상위 클래스의 메소드와 **이름, return 값은 동일하지만, 매개변수만 다른 메소드**를 만드는 것을 의미한다. 다양한 상황에서 메소드가 호출될 수 있도록 한다. (ex. 생성자)
+
+
+
+## Access Modifier
+
+변수 혹은 메소드의 접근 범위를 설정해주기 위해서 사용하는 JAVA의 예약어를 의미하며 총 네 가지 종류가 존재한다.
+
+- public
+
+  어떤 클래스에서라도 접근이 가능
+
+- protected
+
+  클래스가 정의되어 있는 **패키지 내**, 혹은 해당 클래스를 **상속받은 외부 패키지**의 클래스에서 접근 가능
+
+- (default)
+
+  클래스가 정의되어 있는 **패키지 내에서만** 접근 가능
+
+- private
+
+  정의된 해당 클래스에서만 접근이 가능
+
+
+
+## Enum
+
+참고자료: [링크1](http://woowabros.github.io/tools/2017/07/10/java-enum-uses.html) [링크2](https://limkydev.tistory.com/50) 
+
+Enum을 통해 얻는 장점:
+
+- IDE의 적극적인 지원(자동완성, 오타검증, 텍스트 리팩토링)
+
+- 허용 가능한 값들을 제한할 수 있다.
+
+- 리팩토링시 변경 범위가 최소화 된다.
+  - 내용의 추가가 필요하더라도, Enum 코드 외에 수정할 필요가 없다.
+
+JAVA의 Enum은 여기서 더해, 다음과 같은 장점이 있다.
+
+- C/C++의 Enum은 결국 int값이지만, JAVA의 Enum은 완전한 기능을 갖춘 **클래스**이다.
+
+
+
+### 1. 데이터들 간의 연관관계 표현
+
+
+
+
+
+
+
+*python에서의 enum은 어떨까?*
