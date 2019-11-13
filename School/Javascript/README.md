@@ -1,8 +1,360 @@
 # Javascript
 
+참고자료: [링크](https://github.com/JaeYeopHan/Interview_Question_for_Beginner/tree/master/JavaScript) 
 
 
 
+
+
+
+
+## Hoisting
+
+*ES6 이후 크게 염려하지 않아도 되는 부분*
+
+`var` 키워드로 선언된 모든 변수 선언은 **호이스트** 된다. 즉, 변수의 정의가 그 범위에 따라 `선언`과 `할당`으로 분리된다. 변수가 함수 내에서 정의되었을 경우, 선언이 함수의 최상위로, 함수 바깥에서 정의되었을 경우, 전역 컨텍스트의 최상위로 변경이 된다. (`선언`이 호이스팅 되는 것.)
+
+```javascript
+function getX() {
+    console.log(x) // undefined
+    var x = 100
+    console.log(x) // 100
+}
+getX()
+```
+
+자바스크립트에서는 위와 같이 변수 `x`를 선언하지 않고 출력하려 하더라도, `undefined`만을 리턴하고 넘어간다. 이는 `var x = 100` 이 구문에서 `var x`를 호이스트하기 때문에 가능한 일이다. 즉, 내부적으로 아래와 같이 코드가 동작하는 것이다.
+
+```javascript
+function getX() {
+    var x
+    console.log(x)
+    x = 100
+    console.log(x)
+}
+getX()
+```
+
+`선언`문은 자바스크립트 엔진 구동시 항상 최우선으로 해석하므로 호이스팅되고, **할당 구문은 런타임 과정에서 이루어지기 때문에** 호이스팅되지 않는다.
+
+```javascript
+foo()
+function foo() {
+    console.log('hello')
+}
+> hello
+```
+
+위 예에서 foo 함수에 대한 선언을 호이스팅하여 global 객체에 등록시키기 때문에 `hello`가 문제없이 출력된다.
+
+```javascript
+foo()
+var foo function() {
+    console.log('hello')
+}
+> Uncaught TypeError: foo is not a function
+```
+
+위 예에서 함수 표현은 함수 리터럴을 할당하는 구조이기 때문에 호이스팅 되지 않으며, 런타임 환경에 `Type error`가 발생하게 된다.
+
+
+
+## Closure
+
+**두 개의 함수로 만들어진 환경**으로 이루어진 특별한 객체의 한 종류이다. 여기서 **환경**이란 클로저가 새엇ㅇ될 때 그 **범위**에 있던 여러 지역 변수들이 포함된 `context`를 말한다. 이를 활용해 JS에서 기본적으로 제공하지 않는 private 속성과 메소드, public 속성과 메소드를 구현할 수 있다.
+
+### 클로저 생성
+
+클로저가 생성되는 조건은 다음과 같다.
+
+1. 내부 함수가 익명 함수로 되어 외부 함수의 반환값으로 사용되다.
+2. 내부 함수는 외부 함수의 실행 환경(execution environment)에서 실행된다.
+3. 내부 함수에서 사용되는 변수 x는 외부 함수의 변수 스코프에 있다.
+
+```javascript
+function outer() {
+    var name = 'closure'
+    function inner() {
+        console.log(name)
+    }
+    inner()
+}
+outer()
+
+> closure
+```
+
+`outer` 함수를 싱행시키는 `context`에는 `name`이라는 변수가 존재하지 않는다는 것을 확인할 수 있다. 비슷한 맥락에서 코드를 아래와 같이 변경할 수 있다.
+
+```javascript
+var name = 'Warning'
+function outer() {
+    var name = 'closure'
+    return function inner() {
+        console.log(name)
+    }
+}
+var callFunc = outer()
+callFunc()
+
+> closure
+```
+
+위 코드에서 `callFunc`를 클로저라고 한다. `callFunc` 호출에 의해 `name`이라는 값이 콘솔에 출력되는데, `outer` 함수의 `context`에 속해있는 변수를 참조하고 있음을 확인할 수 있다. 여기서 `outer` 함수의 지역변수로 존재하는 변수(`name`)를 `free variable(자유변수)`라고 한다.
+
+구체적 설명) **`inner`는 자신이 생성된 렉시컬 스코프에서 벗어나 global에서 `callFunc`라는 이름으로 호출이 되었고, 스코프 탐색은 현재 실행 스택과 관련 없는 `outer`를 거친다.** `inner`를 `callFunc`로 초기화할 때에는 이미 `inner`의 `outer lexical environent`를 `outer`로 결정한 이후이다. 때문에, `inner`의 생성과 직접적인 관련이 없는 `global`에서 아무리 호출하더라도 `outer`에서 `name` 변수를 찾는 것이다. 이런 `inner` 와 같은 함수를 *클로저*라고 부른다.
+
+외부 함수 호출이 종료되더라도 외부 함수의 지역 변수 및 변수 스코프 객체의 체인 관계를 유지할 수 있는 구조를 클로저라고 한다. 보다 정확히는 ***외부 함수에 의해 반환되는 내부 함수***를 가리키는 말이다.
+
+내 정리) 외부 함수에 의해 반환되는 내부 함수를 클로저라고 하는데, 이 클로저는 자신을 감싸는 외부 함수의 스코프를 자신의 환경으로 삼는다.
+
+### 반복문 클로저
+
+```javascript
+function count() {
+    var i
+    for (i=1; i<10; i++) {
+        setTimeout(function timer(){
+            console.log(i)
+        }, i*100)
+    }
+}
+count()
+>> 10 10 10 10 10 10 10 10 10
+```
+
+위 코드는 1,2,3,...9를 0.1초마다 출력하는 것이 목표였으나, 결과로는 `10`이 9번 출력된다.
+
+위 코드의 `timer` 함수는 클로저로, 언제 어디서 어떻게 호출되던지 항상 상위 스코프인 `count`에게 `i`값에 대한 정보를 알려달라고 요청할 것이다. 그리고 `timer`는 0.1초 뒤에 호출된다. 결국, `timer`함수는 `i`가 이미 10이 되어버린 이후에 `i`값을 출력하게 된다.
+
+**의도대로 1~9까지 차례대로 출력하려면 어떻게 해야 할까?**
+
+1. 새로운 스코프를 추가하여 반복 시마다 그곳에 따로 값을 저장하는 방식
+
+   ```javascript
+   function count() {
+       var i
+       for (i=0; i<10; i++){
+           (function(countingNumber) {
+               setTimeout(function timer() {
+                   console.log(countingNumber)
+               }, i*100)
+           })(i)
+       }
+   }
+   count()
+   ```
+
+2. ES6에서 추가된 블록 스코프를 이용하는 방식
+
+   ```javascript
+   function count() {
+       for (let i=1; i<10; i++){
+           setTimeout(function timer() {
+               console.log(i)
+           }, i*100)
+       }
+   }
+   count()
+   ```
+
+   
+
+## this
+
+JS에서 모든 함수는 실행될 때마다 함수 내부에 `this`라는 객체가 추가된다. `arguments`라는 유사 배열 객체와 함께 내부로 암묵적으로 전달되는 것이다. 그렇기에 JS에서의 `this`는 함수가 호출된 상황에 따라 그 모습을 달리한다.
+
+### 상황1. 객체의 메소드를 호출할 때
+
+객체의 프로퍼티가 함수일 경우 메소드라고 부른다. `this`는 함수를 실행할 때 함수를 소유하고 있는 객체(메소드를 포함하고 있는 인스턴스)를 참조한다. 즉, 해당 메소드를 호출한 객체로 바인딩된다. `A.B`일 때 `B`함수 내부에서의 `this`는 `A`를 가리킨다.
+
+```javascript
+var myObject = {
+    name: 'foo',
+    sayName: function() {
+        console.log(this)
+    }
+}
+myObject.sayName()
+> Object {name: 'foo'}
+```
+
+### 상황2. 함수를 호출할 때
+
+특정 객체의 메소드가 아니라 함수를 호출하면, 해당 함수 내부 코드에서 사용된 `this`는 전역객체에 바인딩 된다. `A.B`일 때 `A`가 전역 객체가 되므로 `B`함수 내부에서의 `this`는 당연히 전역 객체에 바인딩 되는 것이다.
+
+```javascript
+var value = 100
+var myObj = {
+    value: 1
+    func1: function() {
+        console.log(`func1's this.value: ${this.value}`)
+        
+        var func2 = functon() {
+            //여기서의 this는 전역객체에 바인딩된다.
+            console.log(`func2's this.value ${this.value}`) 
+        }
+        func2()
+    }
+}
+myObj.func1();
+> func1's this.value: 1
+> func2's this.value: 100
+```
+
+`func1`에서의 `this`는 **상황1**과 같다. 그러기에 `myObj`가 `this`로 바인딩되고 `myObj`의 `value`인 1이 출력된다. 하지만 `func2`는 **상황2**에 해당한다. `A.B` 구조로 나타내고자 할 때 `func2`는 `A`가 없으므로 `this`가 전역 객체를 참조하여 전역의 `value`값인 100이 출력된다.
+
+### 상황3. 생성자 함수를 통해 객체를 생성할 때
+
+그냥 함수를 호출하지 않고, `new`키워드를 통해 생성자 함수를 호출할 때는 `this`가 다르게 바인딩된다. `new` 키워드를 통해서 호출된 함수 내부에서의 `this`는 객체 자신이 된다. 
+
+`new` 연산자를 통해 함수를 생성자로 호출하게 되면, 일단 빈 객체가 생성되고 `this`가 바인딩 된다. 이 객체는 함수를 통해 생성된 객체이며, 자신의 부모인 프로토타입 객체와 연결되어 있다. 만약 return문이 명시되지 않은 경우 `this`로 바인딩된 새로 생성한 객체가 리턴된다.
+
+```javascript
+var Person = function(name) {
+    console.log(this)
+    this.name = name
+}
+var foo = new Person('foo') // Person
+console.log(foo.name) // foo
+```
+
+### 상황4. apply, call, bind를 통한 호출
+
+위의 다른 상황에 의존하지 않고, `this`를 JS 코드로 직접 주입/설정할 수 있는 방법이다. 아래 예에서 `func2`를 호출할 때 `func1`에서의 `this`를 주입하기 위해 위 세 가지 메소드를 사용할 수 있다. 또 각 메소드의 차이점을 파악하기 위해 `func2`에 파라미터를 받을 수 있도록 한다.
+
+**`bind` 메소드 사용**
+
+```javascript
+var value = 100
+var myObj = {
+    value: 1
+    func1: function () {
+        console.log(`func1's this.value: ${this.value}`)
+        
+        var func2 = function(val1, val2) {
+            console.log(`func2's this.value ${this.value} and ${val1} and ${val2}`)
+        }.bind(this, `param1`, `param2`)
+        func2()
+    }
+}
+myObj.func1()
+> func1's this.value: 1
+> func2's this.value: 1 and param1 and param2
+```
+
+**`call` 메소드 사용**
+
+```javascript
+var value = 100
+var myObj = {
+    value: 1
+    func1: function() {
+        console.log(`func1's this.value: ${this.value}`)
+        
+        var func2 = function(val1, val2) {
+            console.log(`func2's this.value: ${this.value} and ${val1} and ${val2}`)
+        }
+        func2.call(this, `param1`, `param2`)
+    }
+}
+myObj.func1()
+> func1's this.value: 1
+> func2's this.value: 1 and param1 and param2
+```
+
+**`apply` 메소드 사용**
+
+```javascript
+var value = 100
+var myObj = {
+    value: 1
+    func1: function() {
+        console.log(`func1's this.value: ${this.value}`)
+        
+        var func2 = function(val1, val2){
+            console.log(`func2's this.value: ${this.value} and ${val1} and ${val2}`)
+        }
+        func2.apply(this, [`param1`, `param2`])
+    }
+}
+myObj.func1()
+> func1's this.value: 1
+> func2's this.value: 1 and param1 and param2
+```
+
+`bind` vs `apply`&`call` 
+
+- `bind`는 함수를 **선언할 때**, `this`와 파라미터를 지정해줄 수 있으며, `call`과 `apply`는 함수를 **호출할 때** `this`와 파라미터를 지정해준다.
+
+`apply` vs `bind`&`call`
+
+- `apply` 메소드에는 첫 번째 인자로 `this`를 넘겨주고 두 번쨰 인자로 넘겨야 할 파라미터를 **배열**의 형태로 전달한다. `bind`와 `call` 메소드는 각각 파라미터를 하나씩 넘겨주는 형태이다.
+
+
+
+## Promise
+
+참고자료: [링크](https://programmingsummaries.tistory.com/325) 
+
+JS에서 비동기 적업을 할 때 이전에는 콜백 함수로 처리할 수 있었지만 프론트엔드의 규모가 커지면서 코드의 복잡도가 높아지는 문제가 발생했다. 콜백이 중첩되는 경우가 발생했고, 이를 해결하기 위해 `Promise` 패턴이 등장하게 되었다. `Promise` 패턴을 사용해 비동기 작업들을 순차적으로 진행하거나, 병렬로 진행하는 등의 컨트롤이 보다 수월해진다. 또, 예외처리에 대한 구조가 존재하기 때문에 오류 처리 등에 대해 보다 가시적으로 관리할 수 있다. (ECMAScript 6에서 정식으로 포함)
+
+아래 예제 코드를 통해 이해해보자.
+
+```javascript
+//Promise 선언
+var _promise = function(param) {
+    return new Promise(function (resolve, reject) {
+        //비동기를 표현하기 위해 setTimeout 함수 사용
+        window.setTimeout(function() {
+            // 파라미터가 참이면
+            if (param) {
+                // 해결 완료 출력
+                resolve("해결 완료")
+            //파라미터가 거짓이면
+            } else {
+                // 실패
+                reject(Error("실패!!"))
+            }
+        }, 3000)
+    })
+}
+
+//Promise 실행
+_promise(true)
+.then(function (text) {
+    //성공시
+    console.log(text)
+}, function (error) {
+    //실패시
+    console.error(error)
+})
+> 해결 완료
+```
+
+**Promise 선언부**
+
+promise는 다음 네 가지 중 하나의 상태(state)가 된다.
+
+1. pending
+
+   아직 약속을 수행 중인 상태(fulfilled 혹은 reject가 되기 전)
+
+2. fulfilled
+
+   약속(promise)이 지켜진 상태
+
+3. rejected
+
+   약속(promise)가 어떤 이유에서 못 지켜진 상태
+
+4. settled
+
+   약속이 지켜졌든 안지켜졌든 일단 결론이 난 상태이다.
+
+
+
+**Promise 실행부**
 
 
 
