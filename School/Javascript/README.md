@@ -4,6 +4,137 @@
 
 
 
+## Javascript의 이벤트 루프
+
+참고자료: [링크](https://asfirstalways.tistory.com/362) [링크](http://sculove.github.io/blog/2018/01/18/javascriptflow/) 
+
+### Javascript Engine?
+
+Javascript를 해석하는 Javascript engine과 웹 브라우저에 화면을 그리는 Rendering engine은 **다른 것**이다. Rendering engine(Layout engine)은 HTML과 CSS로 작성된 마크업 관련 코드들을 콘텐츠로서 웹  페이지에 **rendering**하는 역할을 한다. 반면 Javascript engine이란 Javascript로 작성한 코드를 해석하고 실행하는 **인터프리터**다. 주로 웹 브라우저에서 이용되지만 최근에는 `node.js`가 등장하면서 server side에선 V8과 같은 engine이 사용된다. (V8은 구글에서 개발한 JS 엔진)
+
+대부분의 JS 엔진은 크게 세 영역으로 나뉜다. (대표적 예: V8)
+
+- Call Stack
+- Task Queue(Event Queue)
+- Heap
+
+여기에 추가적으로 **Event loop**이 존재하여 Task queue에 들어가는 task들을 관리하게 된다.
+
+![eventloop1](./img/eventloop1.JPG)
+
+### Call Stack
+
+JS는 **단 하나의 호출 스택(call stack)**을 사용한다. 이러한 특징 때문에 JS의 함수가 실행되는 방식을 "Run to Completion"이라고 한다. 즉, 하나의 함수가 실행되면 *이 함수의 실행이 끝날 때까지 다른 어떤 task도 수행될 수 없다는 의미*이다. 요청이 들어올 때마다 해당 요청을 **순차적**으로 호출 스택에 담아 처리한다. 메소드가 실행될 때, 호출 스택에 새로운 프레임이 생기고 **push**되고 메소드의 실행이 끝나면 해당 프레임은 **pop**된다.
+
+JS 엔진은 기본적으로 하나의 쓰레드에서 동작하기 때문에, *'하나의 스택 '*만 가지고 있고, 이는 곧 *'동시에 단 하나의 작업만 할 수 있음 '*을 의미한다.
+
+아래는 이를 확인하기 위한 예시다.
+
+```javascript
+function foo(b) {
+    var a = 10
+    return a + b
+}
+
+function bar(x) {
+    var y = 2
+    return foo(x+y)
+}
+
+console.log(bar(1))
+```
+
+`bar` 함수를 호출하였으므로 해당 함수의 **스택 프레임이 형성**되고 그 안에는 `y`와 같은 **local variable**과 **arguments**가 함께 생성된다. 그리고 이 `bar` 함수는 `foo`라는 함수를 호출한다. 아직 `bar` 함수는 종료되지 않았으니 **pop**되지 않고 호출된 `foo` 함수가 호출 스택에 **push**된다. (이 때도 마찬가지로 `foo`를 위한 스택 프레임이 형성되고, local variable과 arguments가 생성된다.)
+
+이후 `foo`함수에서는 `a+b`라는 값을 return 하면서 모든 작업을 마치게 되므로 stack에서 **pop**한다. 다시 `bar` 함수로 돌아와서 `foo`로부터 받은 값을 return하면서 `bar` 함수 또한 종료되고, **pop**한다.
+
+### Heap
+
+동적으로 생성된 객체(인스턴스)는 heap에 할당된다. 대부분 *구조화되지 않은 '더미'같은 메모리 영역*을 heap이라 표현한다.
+
+### Task Queue(Event Queue)
+
+JS 런타임 환경 (JavaScript Runtime Environment)에서는 처리해야 하는 task들을 임시 저장하는 대기 큐가 존재한다. 그 대기 큐를 의미하며 **Call stack이 비어졌을 때** 대기열에 먼저 들어온 순서대로 작업을 수행한다.
+
+아래는 이를 확인하기 위한 예시다.
+
+```javascript
+setTimeout(function() {
+    console.log("first")
+}, 0)
+console.log("second")
+// second
+// first
+```
+
+JS에서 **비동기로 호출**되는 함수들은 Call stack에 쌓이지 않고 **Task Queue**에 **enqueue**된다. JS에서는 이벤트에 의해 실행되는 함수(handler)들이 비동기로 실행된다. JS 엔진이 아닌 **Web API 영역**에 따로 정의되어 있는 함수들은 비동기로 실행된다.
+
+아래 예를 통해 이를 다시 확인한다.
+
+```javascript
+function test1() {
+    console.log("test1")
+    test2()
+}
+
+function test2() {
+    let timer = setTimeout(function() {
+        console.log("test2")
+    }, 0)
+    test3()
+}
+
+function test3() {
+    console.log("test3")
+}
+
+test1()
+// test1
+// test3
+// test2
+```
+
+위 함수의 작동 순서
+
+1. `test1()` 함수 실행(call stack **push**)
+2. "test1" 출력
+3. `test2()` 함수 실행(call stack **push**)
+4. `setTimeout` 함수의 내부에 걸려있는 핸들러(익명함수)가 **event queue**에 **enqueue**
+5. `test3()` 함수 실행(call stack **push**)
+6. "test3" 출력
+7. `test3()` **pop**
+8. `test2()` **pop**
+9. `test1()` **pop**
+10. event queue 에서 하나의 이벤트를 **deque**하여 call stack에 **push** 및 실행
+11. "test2" 출력 
+
+**이벤트에 걸려있는 핸들러는 절대 먼저 실행될 수 없다!**
+
+**가능한 의문들)**
+
+1. Event loop는 백그라운드 스레드가 존재해서 call stack을 polling하면서 비어있는지 확인하는 건가?
+2. Event queue에도 event가 있는지 polling으로 검사하는건가?
+3. Event loop에 의해서 event queue에 있던 하나의 이벤트가 call stack에 들어간 다음에는 그 이벤트가 끝나기 전까지 이벤트 루프는 이벤트 큐에서 이벤트를 dequeue하지 않나?
+4. Call stack에서 이벤트가 진행중일 때도 event loop는 어떻게 확인을 하나?
+
+**해답)**
+
+예제 코드
+
+```javascript
+while (queue.waitForMessage()) {
+    queue.processNextMessage()
+}
+```
+
+*이벤트 루프는 현재 실행 중인 태스크가 없는지와 태스크 큐에 태스크가 있는지를 반복적으로 확인한다.*
+
+queue에 메세지, 즉 처리해야할 event(or task)가 존재하면 **while-loop 안으로 들어가서 해당하는 이벤트를 처리하거나 작업을 수행한다**. 그리고는 다시 queue로 돌아와 새로운 이벤트가 존재하는지 파악하는 것이다. **Event queue에서 대기하고 있는 event들은 한 번에 하나씩 Call Stack으로 호출되어 처리된다.**
+
+
+
+## Javascript의 비동기 처리
+
 
 
 
@@ -332,6 +463,10 @@ _promise(true)
 > 해결 완료
 ```
 
+- *`Promise.resolve(value)`가 뭐야? 주어진 값으로 이행하는 `Promise.then` 객체를 반환하는 메소드*
+
+- *`Promise.reject(reason)`가 뭐야? 주어진 이유로 거부된 `Promise` 객체를 반환하는 메소드*
+
 **Promise 선언부**
 
 promise는 다음 네 가지 중 하나의 상태(state)가 된다.
@@ -352,15 +487,228 @@ promise는 다음 네 가지 중 하나의 상태(state)가 된다.
 
    약속이 지켜졌든 안지켜졌든 일단 결론이 난 상태이다.
 
+위의 Promise 선언부를 보면, Promise 객체를 생성하기 위해 Promise 객체를 리턴하도록 함수로 감싸고 있다. Promise 객체만 보면 파라메터로 익명함수(`function`)를 담고 있고, 익명 함수는 `resolve`와 `reject`를 파라메터로 받고 있다.
 
+`new Promise`로 Promise가 생성되는 직후부터 `resolve`나 `reject`가 호출되기 전까지의 순간을 *pending* 상태라고 볼 수 있다.
+
+이후 비동기 작업을 마친 뒤 결과물을 약속대로 잘 줄 수 있다면 주입되는 `resolve` 함수를 호출하고, 실패했다면 `reject` 함수를 호출하는 것이 Promise의 골자다.
 
 **Promise 실행부**
 
+`_promise()`를 호출하면 Promise 객체가 리턴된다. Promise 객체에는 정사적으로 비동기 작업이 완료되었을 때 호출하는 `then`이라는 API가 존재한다. 위의 예제는 `then` API를 호출해서 비동기 작업이 완료되면 결과에 따라 성공 혹은 실패 메세지를 콘솔에 띄워준다.
+
+`then` API는 *첫 번째 파라메터에는 성공 시 호출할 함수를, 두 번째 파라메터에는 실패 시 호출할 함수를 선언*하여 Promise의 상태에 따라 수행하게 된다.
+
+ ### 에러를 잡는 Promise.catch API
+
+체이닝으로 연결된 상태에서 비동기 작업이 에러를 발생시킬 경우, 이를 처리하기 위해 `catch` API가 존재한다. `.then(null, function(){})`를 메소드 형태로 바꾼 거라고 해도 무방하다.
+
+아래는 그 예제다.
+
+```javascript
+_promise(true)
+	.then(JSON.parse)
+	.catch(function() {
+    	window.alert('체이닝 중간에 에러가!!')
+	})
+	.then(function (text) {
+    	console.log(text)
+	})
+```
+
+우리가 작성한 `_promise` 는 성공/실패 시 JSON 객체가 아닌 String을 리턴하므로 `JSON.parse` 에서 에러가 반드시 발생할 것이다. 따라서 다음 `then`으로 이동하지 못하고 `catch`에서 작업을 이어가게 된다. 이와 같이 `catch`는 promise가 연결되어 있을 때 발생하는 오류를 처리해주는 역할을 한다.
+
+아래는 `then`과 `catch` 구문을 사용해 만든 예제이다.
+
+```javascript
+asyncThing1()
+	.then(function() { return asyncThing2() })
+	.then(function() { return asyncThing3() })
+	.catch(function(err) { return asyncRecovery1() })
+	
+	.then(function() {
+    	return asyncThing4()
+	}, function(err) {
+    	return asyncRecovery2()
+	})
+	.catch(function(err) { console.log("don't worry about it")})
+
+	.then(function() { console.log("all done!") })
+```
+
+위 코드는 아래와 같은 순서도를 따른다.
+
+![promise1](./img/promise1.png)
+
+### 여러 프로미스가 모두 완료될 때 실행하려면? Promise.all API
+
+여러 비동기 작업들이 존재하고 *이들이 모두 완료되었을 때 작업을 진행*하고 싶다면, Promise.all API를 활용한다.
+
+아래 예제 코드를 사용한다.
+
+```javascript
+var promise = new Promise(function (resolve, reject) {
+    // 비동기를 표현하기 위해 setTimeout 함수를 사용
+    window.setTimeout(function () {
+        // 해결됨
+        console.log("첫 번쨰 promise 완료")
+        resolve("11111")
+    }, Math.random()*20000 + 1000)
+})
+
+var promise2 = new Promise(function (resolve, reject) {
+    // 비동기를 표현하기 위해 setTimeout 함수를 사용
+    window.setTimeout(function () {
+        //해결됨
+        console.log("두 번쨰 Promise 완료")
+        resolve("222222")
+    }, Math.random()*10000 + 1000)
+})
+
+Promise.all([promise1, promise2]).then(function (values) {
+    console.log("모두 완료됨~", values)
+})
+```
+
+위 코드의 작업 순서
+
+1. `promise2`가 완료됨
+2. `promise1`가 완료됨
+3. 콘솔에 "모두 완료됨~" 출력
+
+### return을 사용하지 않고 바로 new Promise로 생성하기
+
+`new Promise`를 return 하는 형식과 바로 위처럼 `new Promise`를 할당하는 형식에는 어떠한 차이가 있을까
+
+아래 예를 확인하자
+
+```javascript
+var _promise = new Promise(function(resolve, reject) {
+    // 어떠한 작업을 수행
+    
+    // 50프로 확률로 resolve
+    if (+new Date()%2 === 0) {
+        resolve("Stuff worked!")
+    } else {
+        reject(Error("It broke"))
+    }
+})
+```
+
+위와 같이 사용할 경우 Promise 객체에 파라메터로 넘겨준 익명함수는 즉각 실행된다. 즉각 실행되므로 `_promise.then(alert)` 등의 형태로 사용할 수 있다.
+
+이후 여러차례 `_promise.then(alert)` 를 호출해도 이미 한 번 수행이 되었기 때문에 계속해서 `resolve` 혹은 `reject`가 수행될 것이다. 예를 들어, 한 번 "Stuff worked!" 가 나왔다면, 몇 번을 반속해서 수행해도 계속 "Stuff worked!" 가 나오게 된다.
+
+Promise 객체를 `new`로 바로 생성할 경우, 아래와 같은 형태도 가능하다.
+
+```javascript
+new Promise(function(resolve, reject) {
+    // 50프로 확률로 resolve
+    if (+new Date()%2 === 0) {
+        resolve("Stuff worked!")
+    } else {
+        reject(Error("It broke"))
+    }
+}).then(alert).catch(alert)
+```
+
+이번에는 앞서 Promise.all를 확인할 때 사용했던 예제에서 Promise를 return 하는 형태로 바꿀 경우의 예다.
+
+```javascript
+var promise1 = function() {
+    return new Promise(function(resolve, reject) {
+        //비동기를 표현하기 위해 setTimeout 함수 사용
+        window.setTimeout(function () {
+            //해결됨
+            console.log("첫번째 Promise 완료")
+            resolve("11111")
+        }, Math.random()*20000 + 1000)
+    })
+}
+
+var promise2 = function() {
+    return new Promise(function (resolve, reject) {
+        //비동기를 표현하기 위해 setTimeout 함수 사용
+        window.setTimeout(function() {
+            //해결됨
+            console.log("두 번쨰 promise 완료")
+            resolve("2222")
+        }, Math.random()*10000 + 1000)
+    })
+}
+```
+
+위와 같이 코드를 작성한 경우, 우리가 사용했던 것과 같이 Promise.all API를 사용할 수 없다. (`promise1`, `promise2`가 Promise 객체가 아니기 때문에 오류가 발생한다.)
+
+```javascript
+Promise.all([promise1, promise2]).then(function(values) {
+    console.log("모두 완료됨", values)
+})
+```
+
+이 경우 아래와 같이 Promise.all API를 사용해야 한다. (`promise1`, `promise2`가 Promise 객체를 반환하는 함수라는 점을 이해.)
+
+```javascript
+Promise.all([promise1(), promise2()]).then(function(values){
+    console.log("모두 완료됨", values)
+})
+```
+
+
+
+## Arrow Function
+
+화살표 함수는 항상 익명이며, 자신의 `this`, `arguments`, `super` 그리고 `new.target`을 바인딩하지 않는다. **따라서 생성자로는 사용할 수 없다.**
+
+- 화살표 함수의 도입 영향: 짧은 함수, 상위 스코프 `this`
+
+예시(짧은 함수)
+
+```javascript
+var materials = [
+    'Hydrogen',
+    'Helium',
+    'Lithum',
+    'Berylium'
+]
+
+materials.map( function(material) {
+    return material.length
+}) // [8,6,7,9]
+
+materials.map( (material) => {
+    return material.length
+}) // [8,6,7,9]
+
+materials.map( ({length}) => length )
+```
+
+예시(상위 스코프 `this`)
+
+```javascript
+function Person(){
+    this.age = 0
+    setInterval(() => {
+        this.age++ //this가 person 객체를 참조
+    }, 1000)
+}
+
+var p = new Person()
+```
+
+일반 함수에서 `this`는 자기 자신을 `this`로 정의한다. 하지만 화살표 함수 `this`는 Person의 `this`와 동일한 값을 갖는다. `setInterval`로 전달된 `this`는 Person의 `this`를 가리키며, Person 객체의 age에 접근한다.
 
 
 
 
-## Node.js
+
+---
+
+
+
+
+
+# Node.js
 
 *다음 [링크](https://sjh836.tistory.com/79)의 글을 참고하여 정리한 내용입니다.*
 
@@ -400,6 +748,14 @@ promise는 다음 네 가지 중 하나의 상태(state)가 된다.
    비동기 file I/O를 하는 경우 OS가 비동기적으로 지원하지 않기 때문에 추가적인 thread를 사용한다.
 
    nodejs의 비동기 I/O인 추상화 라이브러리인 Libuv는 기본적으로 4개의 thread를 가지고 있다(변경 가능). 이용자가 fs모듈의 `readFile()`함수 혹은 crypto 모듈의 `pbkdf2()`함수를 사용할 경우 내부적으로 이런 작업들을 thread를 사용해 처리하게 된다.
+   
+4. 이벤트 루프가 싱글 스레드에서 동작 한다는 것이지 **내부적으로 스레드풀**을 두어 **I/O 작업**에 스레드를 사용할 수 있도록 한다. 이를 통해 병렬적으로 작업을 진행할 수 있는 것이다. 
+
+   조금 더 구체적으로, node.js가 사용하는 `libuv` 모듈은 내부적으로 **thread pool**을 두어 I/O 작업을 thread pool에 존재하는 thread를 사용해 처리하기 때문에 event loop는 Block 당하지 않고 빠르게 작업할 수 있는 것이다.
+
+   그러므로 node.js는 싱글 스레드다 라는 말은 거짓이다. 하지만 프로그래머가 처리할 수 있는 일반적인 javascript 코드들은 싱글 스레드인 이벤트 루프에서 작업하게 된다. 따라서 CPU 작업량이 많은 코드는 다른 JS 코드를 block하게 만들어 다른 작업이 중단된 것처럼 보일 수 있다.
+
+   But) node.js 10.5버전부터 **worker_thread**라는 모듈을 통해 thread pool에 스레드를 프로그래머가 직접 생성할 수 있게 되었다. 이제 CPU hard한 작업들을 event loop에서 처리할 필요 없이 생성한 스레드에 할당하여 작업할 수 있게 되었다. 그리하여 event loop는 CPU hard한 작업에서 벗어날 수 있게 되었다.
 
 **싱글스레드로 여러 요청을 어떻게 받지?**
 
