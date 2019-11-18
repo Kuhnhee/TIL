@@ -496,3 +496,202 @@ props를 통해 받은 데이터는 마치 자신의 데이터인 마냥 `templa
 </template>
 ```
 
+
+
+---
+
+(11/18 추가)
+
+axios를 쓸 때에는 아래와 같이 `catch`구문을 통해 error를 핸들링 해주는게 좋다.
+
+```javascript
+axios.get(API_URL, {
+    params: {
+        key: API_KEY,
+        type: 'video',
+        part: 'snippet',
+        q: inputValue,
+    }
+}).then(res => {
+    this.videos = res.data.items
+}).catch(err => { // error handling
+    console.log(err)
+})
+```
+
+
+
+현재 component에만 적용되는 `style` 태그를 정의하고 싶을 경우. `scoped` 키워드를 사용한다.
+
+> `SearchBar.vue`의 `style` 태그
+>
+> ```html
+> <template>
+>   <div class="bg-color-search-bar">
+>     <input @change="onInput" type="text">
+>   </div>
+> </template>
+> 
+> ...
+> 
+> <style scoped>
+>   .div {
+>     background-color: bisque;
+>   }
+> </style>
+> ```
+>
+> 현재 컴퍼넌트의 `div`태그에만 영향을 주는 `style`태그.
+
+
+
+`VideoList`를 구성하는 `VideoListItem` component 정의. (`VideoList` 컴포넌트의 자식)
+
+`VideoList`로부터 props를 통해 `video`를 전달받는다.
+
+```javascript
+export default {
+  name: 'VideoListItem',
+  props: {
+    video: {
+      type: Object,
+      required: true,
+    }
+  },
+}
+```
+
+`VideoListItem`의 `template`은 `img`태그를 갖는다.
+
+```html
+<template>
+  <div>
+    <img :src="video.snippet.thumbnails.default.url">
+  </div>
+</template>
+```
+
+`VideoList`의 `template`은 `video-list-time` 컴퍼넌트를 불러와 출력한다.
+
+```html
+<video-list-item v-for="video in videos" :video="video" :key="video.id.videoId">
+
+</video-list-item>
+```
+
+
+
+선택한 영화의 상세보기를 위한 `VideoDetail` 컴포넌트 정의. (`App` 컴포넌트의 자식)
+
+`App` 컴포넌트의 template에서 `VideoDetail` 컴포넌트 등록 및 호출
+
+```html
+<template>
+  <div class="bg-app">
+	...
+    <VideoDetail/>
+	...
+  </div>
+</template>
+
+<script>
+...
+import VideoDetail from './components/VideoDetail'
+
+export default {
+  name: 'App', //너의 이름은 App이야~
+  components: {
+    SearchBar,
+    VideoList,
+    VideoDetail,
+  }, //end of components
+```
+
+`VideoListItem` 컴포넌트를 클릭 시 `VideoDetail` 컴포넌트에서 변화가 발생해야 함.
+
+(`VideoListItem` > `VideoList` > `App` > `VideoDetail` 순으로 데이터가 전달되어야 한다.)
+
+`VideoListItem`을 다음과 같이 수정하여 선택한 `video`의 데이터를 부모에게 전달한다.
+
+```html
+<template>
+  <div>
+    <li @click="onSelect">
+      <img :src="thumbnailUrl">
+    </li>
+  </div>
+</template>
+...
+<script>
+...
+  methods: {
+    onSelect() {
+      this.$emit('videoSelect', this.video) //선택된 데이터를 부모에게 전달
+    }
+  }
+...
+</script>
+```
+
+`videoSelect`라는 이벤트를 부모 컴포넌트인 `VideoList`에서 받은 뒤, 이 데이터를 다시 `App`에게 전달.
+
+```html
+<video-list-item v-for="video in videos" :video="video" :key="video.id.videoId" @videoSelect="onVideoSelect"/>
+
+..
+
+<script>
+    methods: {
+        onVideoSelect(video) {
+            this.$emit('onVideoSelect', video)
+        }
+    }
+</script>
+```
+
+`App` 컴포넌트에서 `video`를 전달받은 뒤, binding(props)을 사용해 자식인 `VideoDetail` 컴포넌트에게 전달.
+
+```html
+...
+    <VideoDetail :video="selectedVideo"/>
+    <VideoList v-bind:videos="videos" @selectedVideo="renderVideo"/>
+...
+```
+
+```javascript
+renderVideo(video){
+    console.log(video)
+    this.selectedVideo = video
+}, //end of renderVideo
+```
+
+`VideoDetail`에서는 전달받은 video의 id를 사용해, `iframe` 태그 안에 넣어 출력한다. 이 때, url값을 반환해주는 `computed` 함수를 사용하여 연산을 효율적으로 한다.
+
+```html
+<template>
+  <div class="bg-detail">
+    <h2>Video Detail</h2>
+    <iframe :src="iframeURL" frameborder="0"></iframe>
+    <h3>상세내용</h3>
+    <p>{{ video.snippet.description }}</p>
+  </div>
+</template>
+
+<script>
+export default {
+  name: 'VideoDetail',
+  props: {
+    video: {
+      type: Object,
+    },
+  },
+  computed: {
+    iframeURL() {
+      const videoId = this.video.id.videoId
+      return `https://www.youtube.com/embed/${videoId}`
+    },
+  },
+}
+</script>
+```
+
