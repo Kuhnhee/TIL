@@ -596,7 +596,7 @@ migration 진행 후, admin 계정 생성 뒤 `http://localhost:8000/api-token-a
 loggedIn() {
     this.$session.start()
 
-    if (this.$session.set('jwt')) {
+    if (this.$session.has('jwt')) {
         router.push('/login')
     }
 },
@@ -652,7 +652,7 @@ urlpatterns = [
 ]
 ```
 
-[todos] > views.py
+[todos] > views.py 에 todo 생성을 위한 함수 선언
 
 ```python
 from django.shortcuts import render
@@ -672,4 +672,137 @@ def todo_create(request):
 ```
 
 post 요청시 Headers에 `Authorization` : `JWT (token값)`을 추가하면 postman을 통해 `todo` 객체를 추가할 수 있다.
+
+유저정보를 보여주는 `UserSerializer`를 정의한다.
+
+```python
+class UserSerializer(serializers.ModelSerializer):
+    todo_set = TodoSerializer(many=True)
+    class Meta:
+        model = get_user_model()
+        fields = ('id', 'username', 'todo_set', )
+```
+
+특정 유저의 상세정보를 보기 위한 url을 정의한다.
+
+```python
+urlpatterns = [
+    path('todos/', views.todo_create),
+    path('users/<int:pk>', views.user_detail),
+]
+```
+
+유저 상세보기를 위한 함수인 `user_detail()`을 정의한다.
+
+```python
+# .../users/1/
+@api_view(['GET'])
+def user_detail(request, pk):
+    user = get_object_or_404(get_user_model(), pk=pk)
+  # 요청이 들어온 JWT의 user 정보와 pk로 검색하여 나온 user 객체의 정보가 같을 경우에만 허용해야한다.
+    if request.user != user:
+        return Response(status=404)
+
+    serializer = UserSerializer(user)
+    return Response(serializer.data)
+```
+
+현재 접속한 유저가 작성한 todo 목록을 가져오기 위해, `Home.vue`에 함수 `getTodos()`를 추가한다.
+
+이에 앞서, `todo-front`에 token decoding을 위한 `jwt-decode` 모듈을 설치한다.
+
+```bash
+$ npm i jwt-decode
+```
+
+```javascript
+import jwtDecode from 'jwt-decode'
+...
+    // 이 함수는 페이지가 load될 때마다 불려져야 한다. ()
+    getTodos() {
+      const token = this.$session.get('jwt')
+      const user_id = jwtDecode(token).user_id // decode 후 user_id만 가져온다. 
+      const options = {
+        headers: {
+          Authorization: 'JWT ' + token // JWT(공백)(토큰)
+        }
+      }
+      // axios -> api/v1/users/{현재 접속한 유저의 id}
+      axios.get(`http://localhost:8000/api/v1/users/${user_id}/`, options)
+      .then(res => {
+        // console.log(res.data.todo_set)
+        this.todos = res.data.todo_set
+      })
+    },
+```
+
+이 함수는 페이지가 로드될 때마다(`mounted` 훅에 실행) 실행되어야 한다.
+
+```javascript
+  mounted() {
+	...
+    this.getTodos()
+  }
+```
+
+`TodoInput`에서 입력받은 데이터를 저장해보자. `createTodo()`함수는 `emit`을 발생시킨다. `Enter`, `Click` 이벤트 모두를 받을 수 있도록 `template`을 수정한다. (`<form>` 태그가 원래 하는 행위(보내는 행위)를 막으면서, `Enter` 혹은 `Click` 이벤트를 받아 메소드를 실행하도록 하는 `@submit.prevent` 이벤트를 사용한다. )
+
+```html
+<template>
+	...
+    <form @submit.prevent="createTodo">
+      <input v-model="title" type="text">
+      <button type="submit" class="btn btn-primary">+</button>
+    </form>
+	...
+</template>
+
+<script>
+export default {
+  name: 'TodoInput',
+  data() {
+    return {
+      title: ''
+    }
+  },
+  methods: {
+    createTodo() {
+      this.$emit('createTodoEvent', this.title)
+      this.title = '' //input form 초기화
+    }
+  }
+}
+</script>
+```
+
+`Home.vue`에서 `createTodoEvent` 이벤트를 받아 `createTodo()`라는 메소드를 실행
+
+```html
+<TodoInput @createTodo="createTodo" />
+```
+
+`createTodo()` 메소드는 axios를 통해 게시물을 `POST`한다.
+
+```javascript
+    createTodo(title) {
+      const token = this.$session.get('jwt')
+      const user_id = jwtDecode(token).user_id // decode 후 user_id만 가져온다. 
+      const options = {
+        headers: {
+          Authorization: 'JWT ' + token // JWT(공백)(토큰)
+        }
+      }
+      const data = new FormData() // data 객체를 안전하게 만들어주는 클래스
+      data.append('user', user_id) // append(key value)
+      data.append('title', title)
+      axios.post("http://localhost:8000/api/v1/todos/", data, options)
+      .then(res => {
+        this.todos.push(res.data)
+      })
+    },
+```
+
+
+
+왜 굳이 이렇게 분리하나? 확장성 때문에, 서버 코드를 그대로 휴대폰 어플리케이션에도 활용할 수 있다.
 
