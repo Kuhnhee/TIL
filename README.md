@@ -10,5 +10,7 @@
 - [python-chatbot](./python-chatbot) : flask FW를 사용한 간단한 웹 프로그래밍 실습 정리 페이지입니다.
 - [web](./web) : Web 기초 이론 및 Django FW, Vue.js 실습 내용을 정리한 페이지입니다.
 - [School](./School) : 대학 주요 과목들 복습&정리
+- [Deploy](./deploy) : 배포
+- [DesignPattern](./DesignPattern) : 디자인 패턴 정리
 
 

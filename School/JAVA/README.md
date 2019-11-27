@@ -536,7 +536,34 @@ public @interface MyAnnotation {}
 
 참고자료: [링크1](http://woowabros.github.io/tools/2017/07/10/java-enum-uses.html) [링크2](https://limkydev.tistory.com/50) 
 
+클래스의 하나로. 열거형 타입(Enumerated type)이라고도 부른다. **서로 연관된 상수들의 집합**이기도 하다.
+
+아래 두 표현식은 동일한 의미를 가진다.
+
+```java
+enum Fruit {
+    APPLE, PEACH, BANANA;
+}
+```
+
+```java
+class Fruit {
+    public static final Fruit APPLE = new Fruit();
+    public static final Fruit PEACH = new Fruit();
+    public static final Fruit BANANA = new Fruit();
+    private Fruit(){} //생성자가 private -> Fruit 클래스를 인스턴스로 만들 수 없다.
+}
+```
+
 Enum을 통해 얻는 장점:
+
+- 코드가 단순해진다.
+
+- 인스턴스 생성과 상속을 방지한다.
+
+- `enum` 키워드를 통해 구현의 의도가 *열거*임을 분명하게 나타낼 수 있다.
+
+  ---
 
 - IDE의 적극적인 지원(자동완성, 오타검증, 텍스트 리팩토링)
 
