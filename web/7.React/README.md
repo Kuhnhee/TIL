@@ -189,3 +189,67 @@ const element = {
 > - 자바스크립트 컴파일러
 > - JSX 문법을 해석할 수 있다.
 
+
+
+## 엘리먼트 렌더링
+
+> 엘리먼트는 React 앱의 가장 작은 단위이며, 화면에 표시할 내용을 기술한다.
+
+```react
+const element = <h1>Hello, world</h1>;
+```
+
+브라우저의 DOM 엘리먼트와 달리 React 엘레먼트는 일반 객체이며(plain object) 쉽게 생성할 수 있다. React DOM은 React 엘리먼트와 일치하도록 DOM을 업데이트한다.
+
+> "컴퍼넌트"개념과 "엘리먼트"개념을 혼동할 수 있다.  엘리먼트는 **컴퍼넌트의 구성 요소**이므로, 컴퍼넌트에 대한 자세한 설명은 후술한다.
+
+### DOM에 엘리먼트 렌더링하기
+
+HTML 파일 어딘가에 `<div>` 태그가 있다고 가정한 뒤 아래 코드를 본다.
+
+```html
+<div id="root">
+    
+</div>
+```
+
+이 안에 들어가는 모든 엘리먼트를 React DOM에서 관리하게 되므로, 이 `<div>` 태그를 "Root DOM Node"라고 부른다. 
+
+React로 구현된 애플리케이션은 일반적으로 하나의 루트 DOM 노드가 있다. 단, 기존 앱에 React를 통합하려는 경우 많은 수의 독립된 루트 DOM 노드가 존재할 수 있다.
+
+React 엘리먼트를 root DOM 노드로 렌더링하고자 한다면, 아래와 같이 둘 다 `ReactDOM.render()`로 전달하면 된다.
+
+```react
+const element = <h1>Hello, world</h1>;
+ReactDOM.render(element, document.getElementById('root'));
+```
+
+### 렌더링 된 엘리먼트 업데이트하기
+
+React 엘리먼트는 `immutable`하다. 즉, 엘리먼트가 생성된 뒤 해당 엘리먼트의 자식이나 속성을 변경할 수 없다. 엘리먼트는 영화에서 하나의 프레임과 같이 특정 시점의 UI를 보여준다.
+
+UI를 업데이트하기 위해서는 새로운 엘리먼트를 생성하고 `ReactDOM.render()`로 전달해주는 방법이 있다. 아래는 그 예시로, 시간을 알려주는 시계다. ([codepen에서 실행하기](https://ko.reactjs.org/redirect-to-codepen/rendering-elements/update-rendered-element))
+
+```react
+function tick() {
+    const element = (
+    <div>
+        <h1>Hello, world!</h1>
+        <h2>It is {new Date().toLocaleTimeString()}.</h2>
+    </div>
+    );
+    ReactDOM.render(element, document.getElementById('root'));
+}
+
+setInterval(tick, 1000);
+```
+
+위 함수는 `setInterval()`콜백을 이용해 매 초(1000ms)마다 `ReactDOM.render()`를 호출한다.
+
+> 실제 대부분의 React 앱은 `ReactDOM.render()`를 한 번만 호출한다. 그러한 코드들이 어떻게 stateful 컴포넌트로 캡슐화 되는지는 후술한다.
+
+### 변경된 부분만 업데이트하기
+
+React DOM은 해당 엘리먼트와 그 자식 엘리먼트를 이전의 엘리먼트와 비교하고 DOM을 원하는 상태로 만드는데 필요한 경우에만 DOM을 업데이트한다.
+
+위의 예제 코드를 개발자 도구로 확인해보면, 매초 전체 UI가 다시 그려지도록 엘리먼트가 만들어졌지만 React DOM은 내용이 변경된 텍스트 노드만 업데이트한다.
