@@ -252,4 +252,6 @@ setInterval(tick, 1000);
 
 React DOM은 해당 엘리먼트와 그 자식 엘리먼트를 이전의 엘리먼트와 비교하고 DOM을 원하는 상태로 만드는데 필요한 경우에만 DOM을 업데이트한다.
 
+![element rendering](./img/element-rendering.jpg)
+
 위의 예제 코드를 개발자 도구로 확인해보면, 매초 전체 UI가 다시 그려지도록 엘리먼트가 만들어졌지만 React DOM은 내용이 변경된 텍스트 노드만 업데이트한다.
