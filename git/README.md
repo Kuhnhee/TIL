@@ -4,7 +4,7 @@
 
 `git checkout 264a387` : head가 264a387인 커밋 순간을 확인
 
-`git checkout master` : 원상복구
+`git checkout master` :  master branch로 이동
 
 
 
@@ -90,10 +90,6 @@
 
 - conflict 해결 후 `add`, `commit` 하면 merge 완료
 
-
-
----
-
 - merge [브랜치이름] : [브랜치이름]을 병합한다.
 - rebase [브랜치이름] : ~를 [브랜치이름]에 갖다붙인다.
 
@@ -152,7 +148,84 @@
   
 
 
----
+
+## 추가 정리
+
+**Scenario 1**
+
+- Github에 프로젝트 저장소가 있고, A, B, C가 프로젝트에 참여한다 가정
+
+- A, B, C는 각각 프로젝트를 fork한 뒤, 이를 자신의 로컬로 clone하여 작업한다.
+
+  - 이 경우, A가 fork해 소유하고 있는 저장소는 origin이며, 프로젝트 저장소는 upstream이 된다.
+
+- 작업한 branch를 origin에 push한다.
+
+  ```bash
+  $ git push origin [branch-name]
+  ```
+
+- uptream에 PR를 올린다.
 
 
 
+**Scenario 2**
+
+- Github에 프로젝트 저장소가 있고, A, B, C가 프로젝트에 참여한다 가정
+
+- A, B, C는 프로젝트를 자신의 로컬로 clone한 뒤, 작업한다.
+
+  - 이 경우, Github의 프로젝트 저장소는 origin이자 upstream이다.
+
+- 작업한 branch를 push한다.
+
+  ```bash 
+  $ git push origin [branch-name]
+  ```
+
+- PR을 올린다.
+
+
+
+**Branch 전략**
+
+- master: 배포 단계
+
+- develop: 개발 단계
+
+  - develop에서 feature별로 branch를 파생시킨다.
+
+  -  `feat/[feature-name]` 의 형태를 자주 사용한다.
+
+  - naming convention은 kebab case를 따른다.
+
+    e.g) feat/login-page, feat/kanban-task-component
+
+  - feature개발이 완료되면 develop branch로 merge한다.
+
+
+
+**실패한 branch 전략 예시**
+
+- master: 배포 단계
+- develop: 개발 단계
+  - **fe** : fe개발 관련 feature branch들의 중간 베이스
+    - `feat/[fe-feature-name]`
+  - **be** : be개발 관련 feature branch들의 중간 베이스
+    - `feat/[be-feature-name]`
+
+> 왜 좋지 않은 전략인가?
+>
+> fe 관련 feature들을 개발하여 fe branch로 merge하고, be 관련 feature들을 개발하여 be branch로 merge하기까지는 문제 없었다.
+>
+> 하지만 개발 중간 단계에서 fe branch와 be branch를 develop branch로 merge하여 코드의 동작을 확인한 뒤, 이후 개발을 이어 나갈 때 문제가 발생한다.
+>
+> 다시 fe branch로 돌아간 뒤, 각각의 feature branch로 돌아가 작업을 이어 나가야 하는데, 이 모든 branch들을 develop branch로 rebase 시켜야 한다.(그렇지 않을 경우 be branch의 코드들이 반영되지 않은 상태이므로 제대로된 테스트를 할 수 없다.) 이후에도 매번 테스트를 할때마다 be, fe branch를 합쳐야 하고, 모든 branch의 rebase까지 해야하므로 여간 귀찮은 일이 아니다.
+>
+> 결론) develop branch에서 fe, be 구분 없이 feature 단위로만 branch를 파생시키는 게 가장 효율적이라고 생각된다.
+
+
+
+**Branch tree 한 눈에 보고싶어?**
+
+- Sourcetree 추천
