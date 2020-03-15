@@ -69,6 +69,10 @@ export default function TargetComponent({ match }) {
 
 ## Next.js routing
 
+목표) react-router을 사용하지 않고, nextjs/router 사용하기
+
+이유) SSR
+
 
 
 ---
@@ -76,6 +80,10 @@ export default function TargetComponent({ match }) {
 
 
 ## Next.js를 사용한 SSR
+
+목표) SPA 앱에 SSR을 도입하자
+
+이유) SEO 향상
 
 
 
