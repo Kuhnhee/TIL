@@ -47,3 +47,29 @@ export default function TargetComponent({ match }) {
 
 참고자료: [React Router를 이용하여 component간에 props 넘겨주기](https://medium.com/@ghur2002/react-router를-이용하여-component간에-props-넘겨주기-610de3511c67)
 
+---
+
+
+
+## Redux로 데이터 관리하기
+
+
+
+---
+
+
+
+## Context로 데이터 관리하기
+
+
+
+---
+
+
+
+## Next.js를 사용한 SSR
+
+
+
+---
+
