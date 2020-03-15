@@ -67,6 +67,14 @@ export default function TargetComponent({ match }) {
 
 
 
+## Next.js routing
+
+
+
+---
+
+
+
 ## Next.js를 사용한 SSR
 
 
