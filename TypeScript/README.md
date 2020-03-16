@@ -68,7 +68,7 @@ iTakePoint2D({ x: 0 }); // Error: missing information `y`
 
 위 코드에서 `iTakePoint2D` 함수는 자신이 필요로 하는 값(`x`,`y`)을 가지기만 했다면, 무엇이든 받아들일 수 있다.
 
-
+---
 
 ## 목차
 
