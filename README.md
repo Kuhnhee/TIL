@@ -16,5 +16,6 @@
 - [React](./React) : React 개발 이슈 정리
 - [node](./nodejs): node 개발 이슈 정리
 - [TypeScript](./TypeScript): TS 스터디
+- [GraphQL](./GraphQL): GraphQL 기본 가이드
 
 
