@@ -585,7 +585,7 @@ inputArea.addEventListener('keydown', e => {
 })
 
 const searchAndPush = (keyword) => {
-    const API_KEY = 'm70jiv4KpdsmCelE47R0DvVEhV35xYcY' //이상태로 github에 올리지 마
+    const API_KEY = 'api_key웅앵웅' //이상태로 github에 올리지 마
     const URL = `http://api.giphy.com/v1/gifs/search?q=${keyword}&api_key=${API_KEY}`
     
     const GiphyAPICall = new XMLHttpRequest()
